@@ -4,6 +4,9 @@
 // epx
 #include <z.hpp>
 
+// std
+#include <limits>
+
 // ut
 #include "def.hpp"
 
@@ -87,6 +90,70 @@ TEST(z_tests, sub) {
   EXPECT_TRUE(epx::is_zero(epx::sub(minus_one, minus_one)));
   EXPECT_EQ(two, epx::sub(one, minus_one));
   EXPECT_EQ(minus_two, epx::sub(minus_one, one));
+}
+
+TEST(z_tests, mul) {
+  {
+    sz zero, one{.digits = {1}}, minus_one{.digits = {1}, .sgn = epx::sign::negative};
+    auto neg_one = sz{.digits = {1}, .sgn = epx::sign::negative};
+
+    EXPECT_TRUE(epx::is_zero(epx::mul(zero, zero)));
+    EXPECT_TRUE(epx::is_zero(epx::mul(zero, one)));
+    EXPECT_TRUE(epx::is_zero(epx::mul(one, zero)));
+    EXPECT_TRUE(epx::is_positive(epx::mul(minus_one, zero)));
+
+    EXPECT_EQ(one, epx::mul(one, one));
+    EXPECT_EQ(one, epx::mul(minus_one, minus_one));
+    EXPECT_EQ(neg_one, epx::mul(one, minus_one));
+    EXPECT_EQ(neg_one, epx::mul(minus_one, one));
+  }
+  {
+    sz a = {.digits = {255}};
+    sz b = {.digits = {2}};
+    sz expected = {.digits = {254, 1}};
+    EXPECT_EQ(expected, epx::mul(a, b));
+
+    a.sgn = epx::sign::negative;
+    auto neg_expected = expected;
+    neg_expected.sgn = epx::sign::negative;
+    EXPECT_EQ(neg_expected, epx::mul(a, b));
+    EXPECT_EQ(neg_expected, epx::mul(b, a));
+    b.sgn = epx::sign::negative;
+    EXPECT_EQ(expected, epx::mul(a, b));
+  }
+  {
+    sz a = {.digits = {1, 1}};            // 257
+    sz b = {.digits = {2, 1}};            // 258
+    sz expected = {.digits = {2, 3, 1}};  // 66'306
+    EXPECT_EQ(expected, epx::mul(a, b));
+    EXPECT_EQ(expected, epx::mul(b, a));
+
+    a.sgn = epx::sign::negative;
+    auto neg_expected = expected;
+    neg_expected.sgn = epx::sign::negative;
+    EXPECT_EQ(neg_expected, epx::mul(a, b));
+    EXPECT_EQ(neg_expected, epx::mul(b, a));
+
+    b.sgn = epx::sign::negative;
+    EXPECT_EQ(expected, epx::mul(a, b));
+  }
+  {
+    using dz = epx::z<>;
+    using D = typename dz::digit_type;
+    dz a = {.digits = {std::numeric_limits<D>::max()}};
+    dz b = {.digits = {static_cast<D>(2)}};
+    dz expected = {.digits = {static_cast<D>(std::numeric_limits<D>::max() - 1), static_cast<D>(1)}};
+    EXPECT_EQ(expected, epx::mul(a, b));
+
+    a.sgn = epx::sign::negative;
+    auto neg_expected = expected;
+    neg_expected.sgn = epx::sign::negative;
+    EXPECT_EQ(neg_expected, epx::mul(a, b));
+    EXPECT_EQ(neg_expected, epx::mul(b, a));
+
+    b.sgn = epx::sign::negative;
+    EXPECT_EQ(expected, epx::mul(a, b));
+  }
 }
 
 }  // namespace epxut
