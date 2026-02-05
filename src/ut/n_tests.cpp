@@ -131,4 +131,62 @@ TEST(n_tests, sub_n) {
   }
 }
 
+TEST(n_tests, mul_n) {
+  {
+    sz zero;
+    auto r = epx::mul_n(zero, zero);
+    EXPECT_TRUE(epx::is_zero(r));
+  }
+  {
+    sz zero, one{.digits = {1}};
+    auto r1 = epx::mul_n(zero, one);
+    auto r2 = epx::mul_n(one, zero);
+    EXPECT_TRUE(epx::is_zero(r1));
+    EXPECT_TRUE(epx::is_zero(r2));
+  }
+  {
+    sz a = {.digits = {7}};
+    sz b = {.digits = {3}};
+    sz expected = {.digits = {21}};
+    EXPECT_EQ(expected, epx::mul_n(a, b));
+    EXPECT_EQ(expected, epx::mul_n(b, a));
+  }
+  {
+    sz a = {.digits = {255}};
+    sz b = {.digits = {2}};
+    sz expected = {.digits = {254, 1}};
+    EXPECT_EQ(expected, epx::mul_n(a, b));
+  }
+  {
+    sz a = {.digits = {0, 1}};
+    sz b = {.digits = {0, 1}};
+    sz expected = {.digits = {0, 0, 1}};
+    EXPECT_EQ(expected, epx::mul_n(a, b));
+  }
+  {
+    sz a = {.digits = {1, 1}};
+    sz b = {.digits = {1, 0, 1}};
+    sz expected = {.digits = {1, 1, 1, 1}};
+    EXPECT_EQ(expected, epx::mul_n(a, b));
+    EXPECT_EQ(expected, epx::mul_n(b, a));
+  }
+  {
+    sz a = {.digits = {255, 255}};
+    sz b = {.digits = {255, 255}};
+    sz expected = {.digits = {1, 0, 254, 255}};
+    EXPECT_EQ(expected, epx::mul_n(a, b));
+  }
+  {
+    sz a = {.digits = {0, 0}};
+    sz b = {.digits = {5}};
+    EXPECT_TRUE(epx::is_zero(epx::mul_n(a, b)));
+  }
+  {
+    mz a = {.digits = {65535}};
+    mz b = {.digits = {65535}};
+    mz expected = {.digits = {1, 65534}};
+    EXPECT_EQ(expected, epx::mul_n(a, b));
+  }
+}
+
 }  // namespace epxut

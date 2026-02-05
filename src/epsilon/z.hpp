@@ -12,6 +12,32 @@
 
 namespace epx {
 
+namespace details {
+
+template <class MaxD, std::unsigned_integral T>
+constexpr T umul(T lhs, T rhs, T& o) {
+  if constexpr (sizeof(T) >= sizeof(MaxD)) {
+    constexpr T s = sizeof(T) * 4u;
+    constexpr T mask = std::numeric_limits<T>::max() >> s;
+    T a0 = lhs & mask, b0 = rhs & mask;
+    T a1 = lhs >> s, b1 = rhs >> s;
+    T ll = a0 * b0, lh = a0 * b1, hl = a1 * b0, hh = a1 * b1;
+    T w = lh + (ll >> s);
+    w += hl;
+    if (w < hl) hh += mask + 1u;
+    o = hh + (w >> s);
+    return (w << s) + (ll & mask);
+  } else {
+    constexpr unsigned s = sizeof(T) * 8u;
+    MaxD l = lhs, r = rhs;
+    auto prod = l * r;
+    o = static_cast<T>(prod >> s);
+    return static_cast<T>(prod);
+  }
+}
+
+}  // namespace details
+
 template <container C>
 constexpr bool is_zero(const z<C>& num) noexcept {
   return std::ranges::size(num.digits) == 0;
@@ -106,6 +132,30 @@ constexpr z<C> sub_n(const z<C>& lhs, const z<C>& rhs) {
     r.digits.push_back(diff);
   }
   assert(borrow == 0);
+  normalize(r);
+  return r;
+}
+
+template <container C>
+constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
+  using D = typename z<C>::digit_type;
+  z<C> r;
+  r.digits.resize(std::ranges::size(lhs.digits) + std::ranges::size(rhs.digits));
+
+  const auto& a = lhs.digits;
+  const auto& b = rhs.digits;
+  for (size_t j = 0; j < std::ranges::size(b); ++j) {
+    D cy = 0;
+    for (size_t i = 0; i < std::ranges::size(a); ++i) {
+      D o;
+      auto prod = details::umul<default_digit_t>(a[i], b[j], o);
+      prod += cy;
+      cy = (prod < cy ? 1u : 0u) + o;
+      r.digits[i + j] += prod;
+      if (r.digits[i + j] < prod) ++cy;
+    }
+    r.digits[j + std::ranges::size(a)] = cy;
+  }
   normalize(r);
   return r;
 }
