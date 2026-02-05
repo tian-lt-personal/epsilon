@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <concepts>
+#include <limits>
 #include <ranges>
 
 // epx
@@ -139,6 +140,10 @@ constexpr z<C> sub_n(const z<C>& lhs, const z<C>& rhs) {
 template <container C>
 constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
   using D = typename z<C>::digit_type;
+  if (is_zero(lhs) || is_zero(rhs)) {
+    return z<C>{};
+  }
+
   z<C> r;
   r.digits.resize(std::ranges::size(lhs.digits) + std::ranges::size(rhs.digits));
 
@@ -182,6 +187,16 @@ constexpr z<C> add(const z<C>& lhs, const z<C>& rhs) {
 template <container C>
 constexpr z<C> sub(const z<C>& lhs, z<C> rhs) {
   return add(lhs, negate(rhs));
+}
+
+template <container C>
+constexpr z<C> mul(const z<C>& lhs, const z<C>& rhs) {
+  z<C> r = mul_n(lhs, rhs);
+  if (is_zero(r)) {
+    return r;
+  }
+  r.sgn = lhs.sgn == rhs.sgn ? sign::positive : sign::negative;
+  return r;
 }
 
 }  // namespace epx
