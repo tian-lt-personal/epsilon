@@ -19,8 +19,8 @@ namespace details {
 template <class MaxD, std::unsigned_integral T>
 constexpr auto umul(T lhs, T rhs) {
   struct result_t {
-    T v;
-    T o;
+    T p0;
+    T p1;
   };
 
   if constexpr (sizeof(T) >= sizeof(MaxD)) {
@@ -32,12 +32,12 @@ constexpr auto umul(T lhs, T rhs) {
     T w = lh + (ll >> s);
     w += hl;
     if (w < hl) hh += mask + 1u;
-    return result_t{.v = (w << s) + (ll & mask), .o = hh + (w >> s)};
+    return result_t{.p0 = (w << s) + (ll & mask), .p1 = hh + (w >> s)};
   } else {
     constexpr unsigned s = sizeof(T) * 8u;
     MaxD l = lhs, r = rhs;
     auto prod = l * r;
-    return result_t{.v = static_cast<T>(prod), .o = static_cast<T>(prod >> s)};
+    return result_t{.p0 = static_cast<T>(prod), .p1 = static_cast<T>(prod >> s)};
   }
 }
 
@@ -76,56 +76,55 @@ constexpr auto div_2ull(uint64_t u0, uint64_t u1, uint64_t v) {
   uint32_t vn1 = static_cast<uint32_t>(v >> 32);
   uint32_t vn0 = static_cast<uint32_t>(v & 0xFFFFFFFFu);
 
+  uint32_t un4, un3, un2, un1, un0;
   if (s > 0) {
-    u1 <<= s;
-    u1 |= (u0 >> (64 - s));
-    u0 <<= s;
+    un4 = static_cast<uint32_t>(u1 >> (32 - s));
+    un3 = static_cast<uint32_t>((u1 << s) | (u0 >> (32 - s)));
+    un2 = static_cast<uint32_t>((u0 << s) & 0xFFFFFFFFu);
+    un1 = static_cast<uint32_t>(u0 >> (32 - s));
+    un0 = static_cast<uint32_t>((u0 << s) & 0xFFFFFFFFu);
   }
-  uint32_t u1hi = static_cast<uint32_t>(u1 >> 32);
-  uint32_t u1lo = static_cast<uint32_t>(u1 & 0xffffffffu);
-  uint32_t u0hi = static_cast<uint32_t>(u0 >> 32);
 
   // D2. [Initialize j] (omitted by unfolded loops)
   // D3. [Calculate qhat]
   constexpr uint64_t b = 0x100000000ull;
-  auto [qhat64, rhat32] = div_2ul(u1hi, u1lo, vn1);
-  while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | u0hi)) {
+  auto [qhat64, rhat32] = div_2ul(un4, un3, vn1);
+  while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | un2)) {
     --qhat64;
     rhat32 += vn1;
     if (rhat32 < vn1) break;  // continue if rhat < b.
   }
+  assert(qhat64 < b);
 
   // D4. [Multiply and subtract]
-  // Compute p = qhat64 * v (p is 128-bit product of two 64-bit numbers)
-  auto [p_low, p_high] = umul<uint64_t>(qhat64, v);
-  
-  // Subtract p from u1:u0
-  // First, subtract low part from u0, tracking borrow to u1
-  uint64_t borrow_to_u1 = (u0 < p_low) ? 1 : 0;
-  u0 -= p_low;
-  
-  // Save original u1 to detect underflow
-  uint64_t original_u1 = u1;
-  uint64_t to_subtract_from_u1 = p_high + borrow_to_u1;
-  
-  // Subtract high part and borrow from u1
-  u1 -= to_subtract_from_u1;
-  
-  // D6: [Add back] if underflow occurred
-  // In unsigned arithmetic: a - b underflows if a < b
-  // After the subtraction, we need to check if we borrowed beyond u1
-  if (original_u1 < to_subtract_from_u1) {
-    // Result is negative, so add back v and decrement quotient
-    qhat64--;
-    
-    // Add v back to (u1, u0)
-    uint64_t temp_u0 = u0 + v;
-    uint64_t carry = (temp_u0 < v) ? 1 : 0;  // Detect overflow in u0 addition
-    u0 = temp_u0;
-    u1 += carry;
+  auto [p0, p1] = umul<uint64_t>(qhat64, v);
+
+  int64_t borrow = 0;
+  int64_t diff = static_cast<int64_t>(un2) - (p0 & 0xFFFFFFFF);
+  un2 = static_cast<uint32_t>(diff);
+  borrow = (p0 >> 32) - (diff >> 63);
+
+  diff = static_cast<int64_t>(un3) - (p1 & 0xFFFFFFFF) - borrow;
+  un3 = static_cast<uint32_t>(diff);
+  borrow = (p1 >> 32) - (diff >> 63);
+
+  diff = static_cast<int64_t>(un4) - borrow;
+  un4 = static_cast<uint32_t>(diff);
+
+  if (diff < 0) {
+    --qhat64;
+    uint64_t carry = static_cast<uint64_t>(un2) + vn0;
+    un2 = static_cast<uint32_t>(carry);
+    carry = static_cast<uint64_t>(un3) + vn1 + (carry >> 32);
+    un3 = static_cast<uint32_t>(carry);
+    un4 += (carry >> 32);
   }
-  
-  return result_t{.q = qhat64, .r = u0 >> s};
+  assert(qhat64 < b);
+  auto q1 = qhat64;
+
+  //TODO
+
+  return result_t{.q = q1 << 32, .r = u0 >> s};
 }
 
 }  // namespace details
@@ -243,11 +242,11 @@ constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
   for (size_t j = 0; j < std::ranges::size(b); ++j) {
     D cy = 0;
     for (size_t i = 0; i < std::ranges::size(a); ++i) {
-      auto [prod, o] = details::umul<default_digit_t>(a[i], b[j]);
-      prod += cy;
-      cy = (prod < cy ? 1u : 0u) + o;
-      r.digits[i + j] += prod;
-      if (r.digits[i + j] < prod) ++cy;
+      auto [p0, p1] = details::umul<default_digit_t>(a[i], b[j]);
+      p0 += cy;
+      cy = (p0 < cy ? 1u : 0u) + p1;
+      r.digits[i + j] += p0;
+      if (r.digits[i + j] < p0) ++cy;
     }
     r.digits[j + std::ranges::size(a)] = cy;
   }
