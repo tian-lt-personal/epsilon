@@ -189,4 +189,72 @@ TEST(n_tests, mul_n) {
   }
 }
 
+TEST(n_tests, div_2ull) {
+  // Simple case: u0 / v with u1 == 0
+  {
+    auto r = epx::details::div_2ull(10, 0, 3);
+    EXPECT_EQ(3, r.q);
+    EXPECT_EQ(1, r.r);
+  }
+
+  // Another simple case with u1 == 0
+  {
+    auto r = epx::details::div_2ull(100, 0, 10);
+    EXPECT_EQ(10, r.q);
+    EXPECT_EQ(0, r.r);
+  }
+
+  // Division with u1 > 0
+  {
+    auto r = epx::details::div_2ull(0, 1, 2);
+    EXPECT_EQ(0x8000000000000000ull, r.q);
+    EXPECT_EQ(0, r.r);
+  }
+
+  // 128-bit number: (1 << 64) / 2
+  {
+    auto r = epx::details::div_2ull(0, 1, 2);
+    EXPECT_EQ(0x8000000000000000ull, r.q);
+    EXPECT_EQ(0, r.r);
+  }
+
+  // Division with remainder
+  {
+    auto r = epx::details::div_2ull(5, 1, 3);
+    EXPECT_EQ(0x5555555555555556ull, r.q);
+    EXPECT_EQ(1, r.r);
+  }
+
+  // Divide by a large divisor
+  {
+    auto r = epx::details::div_2ull(0xFFFFFFFFFFFFFFFFull, 0, 0xFFFFFFFFFFFFFFFFull);
+    EXPECT_EQ(1, r.q);
+    EXPECT_EQ(0, r.r);
+  }
+
+  // Divide with non-zero remainder
+  {
+    auto r = epx::details::div_2ull(0xFFFFFFFFFFFFFFFFull, 0, 2);
+    EXPECT_EQ(0x7fffffffffffffffull, r.q);
+    EXPECT_EQ(1, r.r);
+  }
+
+  // Test with smaller divisor and larger dividend
+  {
+    auto r = epx::details::div_2ull(0x0000000100000000ull, 0, 0x100000000ull);
+    EXPECT_EQ(1, r.q);
+    EXPECT_EQ(0, r.r);
+  }
+
+  // Divide by zero should throw
+  {
+    EXPECT_THROW(epx::details::div_2ull(10, 0, 0), epx::divide_by_zero);
+  }
+
+  // u1 >= v should throw (overflow)
+  {
+    EXPECT_THROW(epx::details::div_2ull(0, 5, 3), epx::overflow_error);
+  }
+}
+
 }  // namespace epxut

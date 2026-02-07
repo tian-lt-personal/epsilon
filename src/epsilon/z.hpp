@@ -78,53 +78,94 @@ constexpr auto div_2ull(uint64_t u0, uint64_t u1, uint64_t v) {
 
   uint32_t un4, un3, un2, un1, un0;
   if (s > 0) {
-    un4 = static_cast<uint32_t>(u1 >> (32 - s));
-    un3 = static_cast<uint32_t>((u1 << s) | (u0 >> (32 - s)));
-    un2 = static_cast<uint32_t>((u0 << s) & 0xFFFFFFFFu);
-    un1 = static_cast<uint32_t>(u0 >> (32 - s));
-    un0 = static_cast<uint32_t>((u0 << s) & 0xFFFFFFFFu);
+    un4 = static_cast<uint32_t>(u1 >> (64 - s));
+    un3 = static_cast<uint32_t>(((u1 << s) | u0 >> (64 - s)) >> 32);
+    un2 = static_cast<uint32_t>(((u1 << s) | u0 >> (64 - s)));
+    un1 = static_cast<uint32_t>((u0 << s) >> 32);
+    un0 = static_cast<uint32_t>(u0 << s);
+  } else {
+    un4 = 0;
+    un3 = static_cast<uint32_t>(u1 >> 32);
+    un2 = static_cast<uint32_t>(u1);
+    un1 = static_cast<uint32_t>(u0 >> 32);
+    un0 = static_cast<uint32_t>(u0);
   }
 
   // D2. [Initialize j] (omitted by unfolded loops)
   // D3. [Calculate qhat]
+  uint64_t q1, q2;
   constexpr uint64_t b = 0x100000000ull;
-  auto [qhat64, rhat32] = div_2ul(un4, un3, vn1);
-  while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | un2)) {
-    --qhat64;
-    rhat32 += vn1;
-    if (rhat32 < vn1) break;  // continue if rhat < b.
+  {
+    auto [qhat64, rhat32] = div_2ul(un4, un3, vn1);
+    while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | un2)) {
+      --qhat64;
+      rhat32 += vn1;
+      if (rhat32 < vn1) break;  // continue if rhat < b.
+    }
+    assert(qhat64 < b);
+
+    // D4. [Multiply and subtract]
+    auto [p0, p1] = umul<uint64_t>(qhat64, v);
+
+    int64_t borrow = 0;
+    int64_t diff = static_cast<int64_t>(un2) - (p0 & 0xFFFFFFFF);
+    un2 = static_cast<uint32_t>(diff);
+    borrow = (p0 >> 32) - (diff >> 63);
+
+    diff = static_cast<int64_t>(un3) - (p1 & 0xFFFFFFFF) - borrow;
+    un3 = static_cast<uint32_t>(diff);
+    borrow = (p1 >> 32) - (diff >> 63);
+
+    diff = static_cast<int64_t>(un4) - borrow;
+    un4 = static_cast<uint32_t>(diff);
+
+    if (diff < 0) {
+      --qhat64;
+      uint64_t carry = static_cast<uint64_t>(un2) + vn0;
+      un2 = static_cast<uint32_t>(carry);
+      carry = static_cast<uint64_t>(un3) + vn1 + (carry >> 32);
+      un3 = static_cast<uint32_t>(carry);
+      un4 += (carry >> 32);
+    }
+    assert(qhat64 < b);
+    q1 = qhat64;
   }
-  assert(qhat64 < b);
+  {
+    auto [qhat64, rhat32] = div_2ul(un3, un2, vn1);
+    while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | un1)) {
+      --qhat64;
+      rhat32 += vn1;
+      if (rhat32 < vn1) break;  // continue if rhat < b.
+    }
 
-  // D4. [Multiply and subtract]
-  auto [p0, p1] = umul<uint64_t>(qhat64, v);
+    // D4. [Multiply and subtract]
+    auto [p0, p1] = umul<uint64_t>(qhat64, v);
 
-  int64_t borrow = 0;
-  int64_t diff = static_cast<int64_t>(un2) - (p0 & 0xFFFFFFFF);
-  un2 = static_cast<uint32_t>(diff);
-  borrow = (p0 >> 32) - (diff >> 63);
+    int64_t borrow = 0;
+    int64_t diff = static_cast<int64_t>(un1) - (p0 & 0xFFFFFFFF);
+    un1 = static_cast<uint32_t>(diff);
+    borrow = (p0 >> 32) - (diff >> 63);
 
-  diff = static_cast<int64_t>(un3) - (p1 & 0xFFFFFFFF) - borrow;
-  un3 = static_cast<uint32_t>(diff);
-  borrow = (p1 >> 32) - (diff >> 63);
+    diff = static_cast<int64_t>(un2) - (p1 & 0xFFFFFFFF) - borrow;
+    un2 = static_cast<uint32_t>(diff);
+    borrow = (p1 >> 32) - (diff >> 63);
 
-  diff = static_cast<int64_t>(un4) - borrow;
-  un4 = static_cast<uint32_t>(diff);
+    diff = static_cast<int64_t>(un3) - borrow;
+    un3 = static_cast<uint32_t>(diff);
 
-  if (diff < 0) {
-    --qhat64;
-    uint64_t carry = static_cast<uint64_t>(un2) + vn0;
-    un2 = static_cast<uint32_t>(carry);
-    carry = static_cast<uint64_t>(un3) + vn1 + (carry >> 32);
-    un3 = static_cast<uint32_t>(carry);
-    un4 += (carry >> 32);
+    if (diff < 0) {
+      --qhat64;
+      uint64_t carry = static_cast<uint64_t>(un1) + vn0;
+      un1 = static_cast<uint32_t>(carry);
+      carry = static_cast<uint64_t>(un2) + vn1 + (carry >> 32);
+      un2 = static_cast<uint32_t>(carry);
+      un3 += (carry >> 32);
+    }
+    assert(qhat64 < b);
+    q2 = qhat64;
   }
-  assert(qhat64 < b);
-  auto q1 = qhat64;
-
-  //TODO
-
-  return result_t{.q = q1 << 32, .r = u0 >> s};
+  uint64_t r = ((static_cast<uint64_t>(un2) << 32) | un1) >> s;
+  return result_t{.q = (q1 << 32) | q2, .r = r};
 }
 
 }  // namespace details
