@@ -10,8 +10,8 @@
 namespace epx {
 
 template <class T>
-concept container = std::ranges::contiguous_range<T> &&  //
-                    std::ranges::sized_range<T> &&       //
+concept container = std::ranges::random_access_range<T> &&  //
+                    std::ranges::sized_range<T> &&          //
                     requires {
                       typename T::value_type;
                       std::is_unsigned_v<typename T::value_type>;
@@ -30,6 +30,14 @@ struct z {
 
   C digits;  // // least significant digits (LSD)
   sign sgn = sign::positive;
+};
+
+struct divide_by_zero : public std::runtime_error {
+  divide_by_zero() : std::runtime_error("epx: divide by zero") {}
+};
+
+struct overflow_error : public std::runtime_error {
+  overflow_error() : std::runtime_error("epx: overflow error") {}
 };
 
 }  // namespace epx

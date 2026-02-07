@@ -3,6 +3,7 @@
 
 // std
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <concepts>
 #include <limits>
@@ -16,7 +17,12 @@ namespace epx {
 namespace details {
 
 template <class MaxD, std::unsigned_integral T>
-constexpr T umul(T lhs, T rhs, T& o) {
+constexpr auto umul(T lhs, T rhs) {
+  struct result_t {
+    T v;
+    T o;
+  };
+
   if constexpr (sizeof(T) >= sizeof(MaxD)) {
     constexpr T s = sizeof(T) * 4u;
     constexpr T mask = std::numeric_limits<T>::max() >> s;
@@ -26,15 +32,100 @@ constexpr T umul(T lhs, T rhs, T& o) {
     T w = lh + (ll >> s);
     w += hl;
     if (w < hl) hh += mask + 1u;
-    o = hh + (w >> s);
-    return (w << s) + (ll & mask);
+    return result_t{.v = (w << s) + (ll & mask), .o = hh + (w >> s)};
   } else {
     constexpr unsigned s = sizeof(T) * 8u;
     MaxD l = lhs, r = rhs;
     auto prod = l * r;
-    o = static_cast<T>(prod >> s);
-    return static_cast<T>(prod);
+    return result_t{.v = static_cast<T>(prod), .o = static_cast<T>(prod >> s)};
   }
+}
+
+// u0 - LSD, u1 - MSD
+constexpr auto div_2ul(uint32_t u0, uint32_t u1, uint32_t v) {
+  struct result_t {
+    uint64_t q;
+    uint32_t r;
+  };
+  assert(v != 0);
+  uint64_t u = (static_cast<uint64_t>(u1) << 32) | u0;
+  return result_t{.q = u / v, .r = static_cast<uint32_t>(u % v)};
+}
+
+// u0 - LSD, u1 - MSD
+constexpr auto div_2ull(uint64_t u0, uint64_t u1, uint64_t v) {
+  struct result_t {
+    uint64_t q;
+    uint64_t r;
+  };
+  if (v == 0) [[unlikely]] {
+    throw divide_by_zero{};
+  }
+  if (u1 >= v) [[unlikely]] {
+    throw overflow_error{};
+  }
+  if (u1 == 0) {
+    return result_t{.q = u0 / v, .r = u0 % v};
+  }
+
+  // D1. [Normalize] (and break them down int 32-bit parts)
+  int s = std::countl_zero(v);
+  assert(s < 64);
+  v <<= s;
+
+  uint32_t vn1 = static_cast<uint32_t>(v >> 32);
+  uint32_t vn0 = static_cast<uint32_t>(v & 0xFFFFFFFFu);
+
+  if (s > 0) {
+    u1 <<= s;
+    u1 |= (u0 >> (64 - s));
+    u0 <<= s;
+  }
+  uint32_t u1hi = static_cast<uint32_t>(u1 >> 32);
+  uint32_t u1lo = static_cast<uint32_t>(u1 & 0xffffffffu);
+  uint32_t u0hi = static_cast<uint32_t>(u0 >> 32);
+
+  // D2. [Initialize j] (omitted by unfolded loops)
+  // D3. [Calculate qhat]
+  constexpr uint64_t b = 0x100000000ull;
+  auto [qhat64, rhat32] = div_2ul(u1hi, u1lo, vn1);
+  while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | u0hi)) {
+    --qhat64;
+    rhat32 += vn1;
+    if (rhat32 < vn1) break;  // continue if rhat < b.
+  }
+
+  // D4. [Multiply and subtract]
+  // Compute p = qhat64 * v (p is 128-bit product of two 64-bit numbers)
+  auto [p_low, p_high] = umul<uint64_t>(qhat64, v);
+  
+  // Subtract p from u1:u0
+  // First, subtract low part from u0, tracking borrow to u1
+  uint64_t borrow_to_u1 = (u0 < p_low) ? 1 : 0;
+  u0 -= p_low;
+  
+  // Save original u1 to detect underflow
+  uint64_t original_u1 = u1;
+  uint64_t to_subtract_from_u1 = p_high + borrow_to_u1;
+  
+  // Subtract high part and borrow from u1
+  u1 -= to_subtract_from_u1;
+  
+  // D6: [Add back] if underflow occurred
+  // In unsigned arithmetic: a - b underflows if a < b
+  // After the subtraction, we need to check if we borrowed beyond u1
+  if (original_u1 < to_subtract_from_u1) {
+    // Result is negative, so add back v and decrement quotient
+    qhat64--;
+    
+    // Add v back to (u1, u0)
+    uint64_t temp_u0 = u0 + v;
+    uint64_t carry = (temp_u0 < v) ? 1 : 0;  // Detect overflow in u0 addition
+    u0 = temp_u0;
+    u1 += carry;
+  }
+  
+  return result_t{.q = qhat64, .r = u0 >> s};
 }
 
 }  // namespace details
@@ -152,8 +243,7 @@ constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
   for (size_t j = 0; j < std::ranges::size(b); ++j) {
     D cy = 0;
     for (size_t i = 0; i < std::ranges::size(a); ++i) {
-      D o;
-      auto prod = details::umul<default_digit_t>(a[i], b[j], o);
+      auto [prod, o] = details::umul<default_digit_t>(a[i], b[j]);
       prod += cy;
       cy = (prod < cy ? 1u : 0u) + o;
       r.digits[i + j] += prod;
