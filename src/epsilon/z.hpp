@@ -16,6 +16,16 @@ namespace epx {
 
 namespace details {
 
+template <container C>
+constexpr z<C> zero() {
+  return z<C>{};
+}
+
+template <container C>
+constexpr z<C> one() {
+  return z<C>{.digits = {1}};
+}
+
 template <class MaxD, std::unsigned_integral T>
 constexpr auto umul(T lhs, T rhs) {
   struct result_t {
@@ -42,132 +52,47 @@ constexpr auto umul(T lhs, T rhs) {
 }
 
 // u0 - LSD, u1 - MSD
-constexpr auto div_2ul(uint32_t u0, uint32_t u1, uint32_t v) {
+template <class D>
+constexpr auto div_2d(D u0, D u1, D v) {
+  using W = wide_digit_t<D>;
   struct result_t {
-    uint64_t q;
-    uint32_t r;
+    W q;
+    D r;
   };
   assert(v != 0);
-  uint64_t u = (static_cast<uint64_t>(u1) << 32) | u0;
-  return result_t{.q = u / v, .r = static_cast<uint32_t>(u % v)};
+  W u = (static_cast<W>(u1) << (sizeof(D) * CHAR_BIT)) | u0;
+  return result_t{.q = static_cast<W>(u / v), .r = static_cast<D>(u % v)};
 }
 
-// u0 - LSD, u1 - MSD
-constexpr auto div_2ull(uint64_t u0, uint64_t u1, uint64_t v) {
-  struct result_t {
-    uint64_t q;
-    uint64_t r;
-  };
-  if (v == 0) [[unlikely]] {
-    throw divide_by_zero{};
-  }
-  if (u1 >= v) [[unlikely]] {
-    throw overflow_error{};
-  }
-  if (u1 == 0) {
-    return result_t{.q = u0 / v, .r = u0 % v};
-  }
-
-  // D1. [Normalize] (and break them down int 32-bit parts)
-  int s = std::countl_zero(v);
-  assert(s < 64);
-  v <<= s;
-
-  uint32_t vn1 = static_cast<uint32_t>(v >> 32);
-  uint32_t vn0 = static_cast<uint32_t>(v & 0xFFFFFFFFu);
-
-  uint32_t un4, un3, un2, un1, un0;
-  if (s > 0) {
-    un4 = static_cast<uint32_t>(u1 >> (64 - s));
-    un3 = static_cast<uint32_t>(((u1 << s) | u0 >> (64 - s)) >> 32);
-    un2 = static_cast<uint32_t>(((u1 << s) | u0 >> (64 - s)));
-    un1 = static_cast<uint32_t>((u0 << s) >> 32);
-    un0 = static_cast<uint32_t>(u0 << s);
+template <class C>
+constexpr auto bit_shift(C& digits, int offset) {
+  using D = typename C::value_type;
+  assert((sizeof(D) * CHAR_BIT) > (size_t)std::abs(offset));
+  if (offset > 0) {
+    // left shift
+    const D mask = ((1u << offset) - 1) << (sizeof(D) * CHAR_BIT - offset);
+    D cy = 0;
+    for (auto& d : digits) {
+      D t = (d << offset) | cy;
+      cy = (d & mask) >> (sizeof(D) * CHAR_BIT - offset);
+      d = t;
+    }
+    return cy;
+  } else if (offset < 0) {
+    offset = std::abs(offset);
+    // right shift
+    const D mask = (1u << offset) - 1;
+    D cy = 0;
+    for (auto d = digits.rbegin(); d != digits.rend(); ++d) {
+      D t = (*d >> offset) | cy;
+      cy = (*d & mask) << (sizeof(D) * CHAR_BIT - offset);
+      *d = t;
+    }
+    return cy;
   } else {
-    un4 = 0;
-    un3 = static_cast<uint32_t>(u1 >> 32);
-    un2 = static_cast<uint32_t>(u1);
-    un1 = static_cast<uint32_t>(u0 >> 32);
-    un0 = static_cast<uint32_t>(u0);
+    return (D)0;
   }
-
-  // D2. [Initialize j] (omitted by unfolded loops)
-  // D3. [Calculate qhat]
-  uint64_t q1, q2;
-  constexpr uint64_t b = 0x100000000ull;
-  {
-    auto [qhat64, rhat32] = div_2ul(un4, un3, vn1);
-    while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | un2)) {
-      --qhat64;
-      rhat32 += vn1;
-      if (rhat32 < vn1) break;  // continue if rhat < b.
-    }
-    assert(qhat64 < b);
-
-    // D4. [Multiply and subtract]
-    auto [p0, p1] = umul<uint64_t>(qhat64, v);
-
-    int64_t borrow = 0;
-    int64_t diff = static_cast<int64_t>(un2) - (p0 & 0xFFFFFFFF);
-    un2 = static_cast<uint32_t>(diff);
-    borrow = (p0 >> 32) - (diff >> 63);
-
-    diff = static_cast<int64_t>(un3) - (p1 & 0xFFFFFFFF) - borrow;
-    un3 = static_cast<uint32_t>(diff);
-    borrow = (p1 >> 32) - (diff >> 63);
-
-    diff = static_cast<int64_t>(un4) - borrow;
-    un4 = static_cast<uint32_t>(diff);
-
-    if (diff < 0) {
-      --qhat64;
-      uint64_t carry = static_cast<uint64_t>(un2) + vn0;
-      un2 = static_cast<uint32_t>(carry);
-      carry = static_cast<uint64_t>(un3) + vn1 + (carry >> 32);
-      un3 = static_cast<uint32_t>(carry);
-      un4 += (carry >> 32);
-    }
-    assert(qhat64 < b);
-    q1 = qhat64;
-  }
-  {
-    auto [qhat64, rhat32] = div_2ul(un3, un2, vn1);
-    while (qhat64 == b || qhat64 * vn0 > (static_cast<uint64_t>(rhat32) << 32 | un1)) {
-      --qhat64;
-      rhat32 += vn1;
-      if (rhat32 < vn1) break;  // continue if rhat < b.
-    }
-
-    // D4. [Multiply and subtract]
-    auto [p0, p1] = umul<uint64_t>(qhat64, v);
-
-    int64_t borrow = 0;
-    int64_t diff = static_cast<int64_t>(un1) - (p0 & 0xFFFFFFFF);
-    un1 = static_cast<uint32_t>(diff);
-    borrow = (p0 >> 32) - (diff >> 63);
-
-    diff = static_cast<int64_t>(un2) - (p1 & 0xFFFFFFFF) - borrow;
-    un2 = static_cast<uint32_t>(diff);
-    borrow = (p1 >> 32) - (diff >> 63);
-
-    diff = static_cast<int64_t>(un3) - borrow;
-    un3 = static_cast<uint32_t>(diff);
-
-    if (diff < 0) {
-      --qhat64;
-      uint64_t carry = static_cast<uint64_t>(un1) + vn0;
-      un1 = static_cast<uint32_t>(carry);
-      carry = static_cast<uint64_t>(un2) + vn1 + (carry >> 32);
-      un2 = static_cast<uint32_t>(carry);
-      un3 += (carry >> 32);
-    }
-    assert(qhat64 < b);
-    q2 = qhat64;
-  }
-  uint64_t r = ((static_cast<uint64_t>(un2) << 32) | un1) >> s;
-  return result_t{.q = (q1 << 32) | q2, .r = r};
 }
-
 }  // namespace details
 
 template <container C>
@@ -272,7 +197,7 @@ template <container C>
 constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
   using D = typename z<C>::digit_type;
   if (is_zero(lhs) || is_zero(rhs)) {
-    return z<C>{};
+    return details::zero<C>();
   }
 
   z<C> r;
@@ -293,6 +218,94 @@ constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
   }
   normalize(r);
   return r;
+}
+
+template <container C>
+constexpr auto div_n(z<C> lhs, z<C> rhs) {
+  struct result_t {
+    z<C> q;
+    z<C> r;
+  };
+
+  if (is_zero(rhs)) [[unlikely]] {
+    throw divide_by_zero{};
+  }
+
+  auto rel = cmp_n(lhs, rhs);
+  if (rel > 0) {
+    if (std::ranges::size(rhs.digits) > 1) {
+      using D = typename z<C>::digit_type;
+      using W = wide_digit_t<D>;
+      constexpr W b = W{1} << (sizeof(D) * CHAR_BIT);
+      constexpr D mask = D{b - 1};
+
+      auto& u = lhs.digits;
+      auto& v = rhs.digits;
+      auto n = std::ranges::size(v);
+      auto m = std::ranges::size(u);
+
+      z<C> q;
+      q.digits.resize(m + 1);
+
+      // D1. [Normalize]
+      const auto s = std::countl_zero(v.back());
+      details::bit_shift(v, (int)s);
+      u.push_back(details::bit_shift(u, (int)s));  // this ensures u[m+n] exists.
+
+      // D2. [Initialize j]
+      for (auto l = 0uz; l <= m; ++l) {
+        auto j = m - 1;
+
+        // D3. [Calculate qhat]
+        auto [qhat, rhat] = details::div_2d(u[j + n], u[j + n - 1], v[n - 1]);
+        while (qhat >= b || qhat * v[n - 2] > rhat * b + u[j + n - 2]) {
+          --qhat;
+          rhat += v[n - 1];
+          if (rhat < v[n - 1]) break;  // continue if rhat < b.
+        }
+
+        // D4. [Multiply and subtract]
+        using I = std::make_signed_t<W>;
+        I borrow = 0, diff;
+        for (auto i = 0uz; i < n; ++j) {  // u[j+n]u[j+n-1]...u[j], v[n-1]v[n-2]...v[0]
+          W p = qhat * v[i];
+          diff = W{u[i + j]} - borrow - (p & mask);
+          u[i + j] = static_cast<D>(diff);
+          borrow = (p >> (sizeof(D) * CHAR_BIT)) - (diff >> (sizeof(I) * CHAR_BIT));
+        }
+        diff = I{u[j + n]} - borrow;
+        u[j + n] = static_cast<D>(diff);
+        q.digits[j] = static_cast<D>(qhat);
+
+        // D5. [Test remainder]
+        if (diff < 0) {
+          // D6. [Add back]
+          --q.digits[j];
+          I carry = 0;
+          for (auto i = 0; i < n; ++i) {
+            W sum = W{u[i + j]} + W{v[i]} + carry;
+            u[i + j] = static_cast<D>(sum);
+            carry = sum >> (sizeof(D) * CHAR_BIT);
+          }  // ignore the carry for u[j+n]
+        }
+      }  // D7. [Loop on j]
+      // D8. [Unnormalize]
+      z<C> r;
+      r.digits.resize(n);
+      for (auto i = 0uz; i < n; ++i) {
+        r.digits[i] = (u[i] >> s) | (static_cast<W>(u[i + 1]) << (sizeof(D) * CHAR_BIT - s));
+      }
+      r.digits[n - 1] = u[n - 1] >> s;
+      normalize(r);
+      return result_t{.q = std::move(normalize(q)), .r = std::move(r)};
+    } else {
+      throw;
+    }
+  } else if (rel < 0) {
+    return result_t{.q = details::zero<C>(), .r = std::move(lhs)};
+  } else {
+    return result_t{.q = details::one<C>(), .r = details::zero<C>()};
+  }
 }
 
 template <container C>

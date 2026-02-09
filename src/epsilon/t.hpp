@@ -9,16 +9,28 @@
 
 namespace epx {
 
+using default_digit_t = uint32_t;
+using max_digit_t = uint32_t;
+using default_container_t = std::vector<default_digit_t>;
+
+struct bad_digit_t;
+template <class D>
+using wide_digit_t =
+    std::conditional_t<sizeof(D) == sizeof(uint8_t), uint16_t,
+                       std::conditional_t<sizeof(D) == sizeof(uint16_t), uint32_t,
+                                          std::conditional_t<sizeof(D) == sizeof(uint32_t), uint64_t, bad_digit_t>>>;
+
 template <class T>
 concept container = std::ranges::random_access_range<T> &&  //
                     std::ranges::sized_range<T> &&          //
                     requires {
                       typename T::value_type;
                       std::is_unsigned_v<typename T::value_type>;
-                    } && requires(T c) { c.reserve(size_t{}); };
-
-using default_digit_t = std::conditional_t<sizeof(std::size_t) == 4, uint32_t, uint64_t>;
-using default_container_t = std::vector<default_digit_t>;
+                    } && requires(T c) {
+                      c.push_back(typename T::value_type{});
+                      c.reserve(size_t{});
+                      sizeof(typename T::value_type) < sizeof(max_digit_t);
+                    };
 
 enum class sign : uint8_t { positive, negative };
 
