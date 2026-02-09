@@ -193,7 +193,26 @@ TEST(n_tests, div_n) {
   {
     {
       sz zero, one{.digits = {1}};
-      epx::div_n(zero, one);
+      auto res = epx::div_n(zero, one);
+      EXPECT_TRUE(epx::is_zero(res.q));
+      EXPECT_TRUE(epx::is_zero(res.r));
+      EXPECT_THROW(epx::div_n(one, zero), epx::divide_by_zero_error);
+    }
+    {
+      sz zero;
+      sz a = {.digits = {0, 1}};
+      sz b = {.digits = {2}};
+      auto res = epx::div_n(a, b);  // 256 / 2 = 128 ... 0
+      EXPECT_EQ(sz{.digits = {0x80}}, res.q);
+      EXPECT_EQ(zero, res.r);
+    }
+    {
+      sz zero;
+      sz a = {.digits = {0, 0, 1}};
+      sz b = {.digits = {0, 2}};
+      auto res = epx::div_n(a, b);  // 65536 / 512 = 128 ... 0
+      EXPECT_EQ(sz{.digits = {0x80}}, res.q);
+      EXPECT_EQ(zero, res.r);
     }
   }
 }

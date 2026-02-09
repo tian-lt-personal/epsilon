@@ -221,6 +221,29 @@ constexpr z<C> mul_n(const z<C>& lhs, const z<C>& rhs) {
 }
 
 template <container C>
+constexpr auto div_n(const z<C>& u, typename z<C>::digit_type v) {
+  using D = typename z<C>::digit_type;
+  static_assert(sizeof(D) <= sizeof(max_digit_t));
+
+  struct {
+    z<C> q;
+    D r;
+  } res{};
+
+  auto& w = res.q.digits;
+  auto n = std::ranges::size(u.digits);
+  w.resize(n);
+  for (auto i = 0uz; i < n; ++i) {
+    auto j = n - 1 - i;
+    auto [q, r] = details::div_2d(u.digits[j], res.r, v);
+    w[j] = static_cast<D>(q);
+    res.r = r;
+  }
+  normalize(res.q);
+  return res;
+}
+
+template <container C>
 constexpr auto div_n(z<C> lhs, z<C> rhs) {
   struct result_t {
     z<C> q;
@@ -228,7 +251,7 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
   };
 
   if (is_zero(rhs)) [[unlikely]] {
-    throw divide_by_zero{};
+    throw divide_by_zero_error{};
   }
 
   auto rel = cmp_n(lhs, rhs);
@@ -242,7 +265,7 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
       auto& u = lhs.digits;
       auto& v = rhs.digits;
       auto n = std::ranges::size(v);
-      auto m = std::ranges::size(u);
+      auto m = std::ranges::size(u) - n;
 
       z<C> q;
       q.digits.resize(m + 1);
@@ -254,10 +277,10 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
 
       // D2. [Initialize j]
       for (auto l = 0uz; l <= m; ++l) {
-        auto j = m - 1;
+        auto j = m - l;
 
         // D3. [Calculate qhat]
-        auto [qhat, rhat] = details::div_2d(u[j + n], u[j + n - 1], v[n - 1]);
+        auto [qhat, rhat] = details::div_2d(u[j + n - 1], u[j + n], v[n - 1]);
         while (qhat >= b || qhat * v[n - 2] > rhat * b + u[j + n - 2]) {
           --qhat;
           rhat += v[n - 1];
@@ -267,11 +290,11 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
         // D4. [Multiply and subtract]
         using I = std::make_signed_t<W>;
         I borrow = 0, diff;
-        for (auto i = 0uz; i < n; ++j) {  // u[j+n]u[j+n-1]...u[j], v[n-1]v[n-2]...v[0]
+        for (auto i = 0uz; i < n; ++i) {  // u[j+n]u[j+n-1]...u[j], v[n-1]v[n-2]...v[0]
           W p = qhat * v[i];
-          diff = W{u[i + j]} - borrow - (p & mask);
+          diff = W{u[i + j]} - borrow - static_cast<W>(p & mask);
           u[i + j] = static_cast<D>(diff);
-          borrow = (p >> (sizeof(D) * CHAR_BIT)) - (diff >> (sizeof(I) * CHAR_BIT));
+          borrow = (p >> (sizeof(D) * CHAR_BIT)) - (diff >> (sizeof(D) * CHAR_BIT));
         }
         diff = I{u[j + n]} - borrow;
         u[j + n] = static_cast<D>(diff);
@@ -290,16 +313,15 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
         }
       }  // D7. [Loop on j]
       // D8. [Unnormalize]
-      z<C> r;
-      r.digits.resize(n);
-      for (auto i = 0uz; i < n; ++i) {
-        r.digits[i] = (u[i] >> s) | (static_cast<W>(u[i + 1]) << (sizeof(D) * CHAR_BIT - s));
-      }
-      r.digits[n - 1] = u[n - 1] >> s;
-      normalize(r);
-      return result_t{.q = std::move(normalize(q)), .r = std::move(r)};
+      details::bit_shift(u, -s);
+      normalize(lhs);
+      return result_t{.q = std::move(normalize(q)), .r = std::move(lhs)};
     } else {
-      throw;
+      assert(std::ranges::size(rhs.digits) == 1);
+      auto res = div_n(lhs, rhs.digits[0]);
+      z<C> r{.digits = {res.r}};
+      normalize(r);
+      return result_t{.q = std::move(res.q), .r = std::move(r)};
     }
   } else if (rel < 0) {
     return result_t{.q = details::zero<C>(), .r = std::move(lhs)};

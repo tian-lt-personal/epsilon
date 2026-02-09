@@ -44,8 +44,8 @@ struct z {
   sign sgn = sign::positive;
 };
 
-struct divide_by_zero : public std::runtime_error {
-  divide_by_zero() : std::runtime_error("epx: divide by zero") {}
+struct divide_by_zero_error : public std::runtime_error {
+  divide_by_zero_error() : std::runtime_error("epx: divide by zero") {}
 };
 
 struct overflow_error : public std::runtime_error {
