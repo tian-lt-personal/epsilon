@@ -278,6 +278,16 @@ TEST(n_tests, div_n) {
       EXPECT_EQ(expected_q, res.q);
       EXPECT_EQ(expected_r, res.r);
     }
+    {
+      // verify d5 & d6: test remainder & add back
+      sz a = {.digits = {0x58, 0x95, 0xca, 0x39, 0xa6}};
+      sz b = {.digits = {0xcf, 0x99, 0xb7}};
+      auto res = epx::div_n(a, b);  // 713934148952 / 12032463 = 5933 ... 12021773
+      sz expected_q{.digits = {0xc5, 0xe7}};
+      sz expected_r{.digits = {0xd, 0x70, 0xb7}};
+      EXPECT_EQ(expected_q, res.q);
+      EXPECT_EQ(expected_r, res.r);
+    }
   }
 }
 

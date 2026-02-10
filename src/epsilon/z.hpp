@@ -309,7 +309,8 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
             W sum = W{u[i + j]} + W{v[i]} + carry;
             u[i + j] = static_cast<D>(sum);
             carry = sum >> (sizeof(D) * CHAR_BIT);
-          }  // ignore the carry for u[j+n]
+          }
+          u[j + n] = u[j + n] + static_cast<D>(carry);
         }
       }  // D7. [Loop on j]
       // D8. [Unnormalize]
