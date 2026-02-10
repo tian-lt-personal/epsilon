@@ -305,7 +305,7 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
           // D6. [Add back]
           --q.digits[j];
           I carry = 0;
-          for (auto i = 0; i < n; ++i) {
+          for (auto i = 0uz; i < n; ++i) {
             W sum = W{u[i + j]} + W{v[i]} + carry;
             u[i + j] = static_cast<D>(sum);
             carry = sum >> (sizeof(D) * CHAR_BIT);
