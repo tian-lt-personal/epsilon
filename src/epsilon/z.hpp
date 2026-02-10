@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026-present Tian Liao
+
 #ifndef EPSILON_INC_Z_HPP
 #define EPSILON_INC_Z_HPP
 
