@@ -16,6 +16,7 @@ set(BUILD_GMOCK OFF CACHE BOOL "" FORCE) # Disable GMock
 FetchContent_MakeAvailable(googletest)
 
 add_executable(epsilon_ut
+  coro_tests.cpp
   n_tests.cpp
   z_tests.cpp
 )
