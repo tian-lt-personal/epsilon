@@ -389,19 +389,20 @@ constexpr auto div(z<C> lhs, z<C> rhs) {
 template <container C>
 constexpr z<C>& mul_4exp(z<C>& val, int exp) {
   using D = typename z<C>::digit_type;
+  constexpr int dbits = static_cast<int>(sizeof(D) * CHAR_BIT);
   exp *= 2;
   if (is_zero(val) || exp == 0) {
     return val;
   }
-  if (std::abs(exp) < sizeof(D) * CHAR_BIT) {
+  if (std::abs(exp) < dbits) {
     D cy = details::bit_shift(val.digits, exp);
     if (cy > 0) {
       val.digits.push_back(cy);
     }
     normalize(val);
   } else if (exp > 0) {
-    size_t digit_shift = exp / (sizeof(D) * CHAR_BIT);
-    int bit_shift = exp % (sizeof(D) * CHAR_BIT);
+    size_t digit_shift = exp / dbits;
+    int bit_shift = exp % dbits;
     if (bit_shift > 0) {
       D cy = details::bit_shift(val.digits, bit_shift);
       if (cy > 0) {
@@ -410,8 +411,8 @@ constexpr z<C>& mul_4exp(z<C>& val, int exp) {
     }
     val.digits.insert(val.digits.begin(), digit_shift, 0u);
   } else if (exp < 0) {
-    size_t digit_shift = (-exp) / (sizeof(D) * CHAR_BIT);
-    int bit_shift = (-exp) % (sizeof(D) * CHAR_BIT);
+    size_t digit_shift = (-exp) / dbits;
+    int bit_shift = (-exp) % dbits;
     if (digit_shift >= std::ranges::size(val.digits)) {
       val.digits.clear();
       val.sgn = sign::positive;
