@@ -192,4 +192,45 @@ TEST(z_tests, div) {
   }
 }
 
+TEST(z_tests, mul_4exp) {
+  {
+    sz num{.digits = {1, 2, 3}};
+    sz expected = num;
+    epx::mul_4exp(num, 0);
+    EXPECT_EQ(expected, num);
+  }
+  {
+    sz num{.digits = {1}};       // 1
+    sz expected{.digits = {4}};  // 1 << 2 = 4
+    epx::mul_4exp(num, 1);
+    EXPECT_EQ(expected, num);
+  }
+  {
+    sz num{.digits = {1}};          // 1
+    sz expected{.digits = {0, 1}};  // 1 << 8 = 256
+    epx::mul_4exp(num, 4);
+    EXPECT_EQ(expected, num);
+  }
+  {
+    sz num{.digits = {4, 1}};       // 260
+    sz expected{.digits = {0x41}};  // 260 >> 2 = 65
+    epx::mul_4exp(num, -1);
+    EXPECT_EQ(expected, num);
+  }
+  {
+    sz num{.digits = {1, 2, 3}, .sgn = epx::sign::negative};
+    epx::mul_4exp(num, -32);  // Large negative exponent
+    sz expected{};
+    EXPECT_EQ(expected, num);
+    EXPECT_TRUE(epx::is_positive(num));  // Should reset sign to positive
+  }
+  {
+    sz num{};
+    epx::mul_4exp(num, 5);
+    EXPECT_TRUE(epx::is_zero(num));
+    epx::mul_4exp(num, -5);
+    EXPECT_TRUE(epx::is_zero(num));
+  }
+}
+
 }  // namespace epxut

@@ -80,7 +80,7 @@ constexpr auto bit_shift(C& digits, int offset) {
       cy = (d & mask) >> (sizeof(D) * CHAR_BIT - offset);
       d = t;
     }
-    return cy;
+    return cy;  // return the left-shifted out bits
   } else if (offset < 0) {
     offset = std::abs(offset);
     // right shift
@@ -91,9 +91,9 @@ constexpr auto bit_shift(C& digits, int offset) {
       cy = (*d & mask) << (sizeof(D) * CHAR_BIT - offset);
       *d = t;
     }
-    return cy;
+    return D{0};  // drop the right-shifted bits
   } else {
-    return (D)0;
+    return D{0};
   }
 }
 }  // namespace details
@@ -384,6 +384,46 @@ constexpr auto div(z<C> lhs, z<C> rhs) {
   res.r.sgn = rhs.sgn;
   res.q.sgn = sgn;
   return res;
+}
+
+template <container C>
+constexpr z<C>& mul_4exp(z<C>& val, int exp) {
+  using D = typename z<C>::digit_type;
+  exp *= 2;
+  if (is_zero(val) || exp == 0) {
+    return val;
+  }
+  if (std::abs(exp) < sizeof(D) * CHAR_BIT) {
+    D cy = details::bit_shift(val.digits, exp);
+    if (cy > 0) {
+      val.digits.push_back(cy);
+    }
+    normalize(val);
+  } else if (exp > 0) {
+    size_t digit_shift = exp / (sizeof(D) * CHAR_BIT);
+    int bit_shift = exp % (sizeof(D) * CHAR_BIT);
+    if (bit_shift > 0) {
+      D cy = details::bit_shift(val.digits, bit_shift);
+      if (cy > 0) {
+        val.digits.push_back(cy);
+      }
+    }
+    val.digits.insert(val.digits.begin(), digit_shift, 0u);
+  } else if (exp < 0) {
+    size_t digit_shift = (-exp) / (sizeof(D) * CHAR_BIT);
+    int bit_shift = (-exp) % (sizeof(D) * CHAR_BIT);
+    if (digit_shift >= std::ranges::size(val.digits)) {
+      val.digits.clear();
+      val.sgn = sign::positive;
+    } else {
+      val.digits.erase(val.digits.begin(), val.digits.begin() + digit_shift);
+      if (bit_shift > 0) {
+        details::bit_shift(val.digits, -bit_shift);
+        normalize(val);
+      }
+    }
+  }
+  return val;
 }
 
 }  // namespace epx
