@@ -159,4 +159,37 @@ TEST(z_tests, mul) {
   }
 }
 
+TEST(z_tests, div) {
+  {
+    sz u = {.digits = {11}}, v = {.digits = {7}};
+    auto [q, r] = epx::div(u, v);
+    EXPECT_EQ(sz{.digits = {1}}, q);
+    EXPECT_EQ(sz{.digits = {4}}, r);
+  }
+  {
+    sz u = {.digits = {11}}, v = {.digits = {7}, .sgn = epx::sign::negative};
+    auto [q, r] = epx::div(u, v);
+    sz expected_q = {.digits = {1}, .sgn = epx::sign::negative};
+    sz expected_r = {.digits = {3}, .sgn = epx::sign::negative};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+  {
+    sz u = {.digits = {11}, .sgn = epx::sign::negative}, v = {.digits = {7}};
+    auto [q, r] = epx::div(u, v);
+    sz expected_q = {.digits = {1}, .sgn = epx::sign::negative};
+    sz expected_r = {.digits = {3}};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+  {
+    sz u = {.digits = {11}, .sgn = epx::sign::negative}, v = {.digits = {7}, .sgn = epx::sign::negative};
+    auto [q, r] = epx::div(u, v);
+    sz expected_q = {.digits = {1}};
+    sz expected_r = {.digits = {4}, .sgn = epx::sign::negative};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+}
+
 }  // namespace epxut
