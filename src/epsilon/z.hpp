@@ -368,6 +368,24 @@ constexpr z<C> mul(const z<C>& lhs, const z<C>& rhs) {
   return r;
 }
 
+template <container C>
+constexpr auto div(z<C> lhs, z<C> rhs) {
+  struct result_t {
+    z<C> q;
+    z<C> r;
+  };
+  auto sgn = lhs.sgn == rhs.sgn ? sign::positive : sign::negative;
+  auto [q, r] = div_n(std::move(lhs), rhs);
+  result_t res = {.q = std::move(q), .r = std::move(r)};
+
+  if (sgn == sign::negative) {
+    res.r = sub_n(rhs, res.r);
+  }
+  res.r.sgn = rhs.sgn;
+  res.q.sgn = sgn;
+  return res;
+}
+
 }  // namespace epx
 
 #endif
