@@ -14,13 +14,13 @@
 namespace epxut {
 
 TEST(ops_tests, add) {
-  epx::z zero, one = {.digits = {1}};
+  lz zero, one = {.digits = {1}};
   auto res = zero + one;
   EXPECT_EQ(one, res);
 }
 
 TEST(ops_tests, sub) {
-  epx::z zero, one = {.digits = {1}}, minus_one = {.digits = {1}, .sgn = epx::sign::negative};
+  lz zero, one = {.digits = {1}}, minus_one = {.digits = {1}, .sgn = epx::sign::negative};
   {
     auto res = zero - one;
     EXPECT_EQ(minus_one, res);
