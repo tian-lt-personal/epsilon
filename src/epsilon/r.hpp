@@ -25,6 +25,16 @@ constexpr r<C> make_q(z<C> p, z<C> q) {
   };
 }
 
+template <container C>
+constexpr r<C> add(r<C> x, r<C> y) {
+  return [x = std::move(x), y = std::move(y)](unsigned int n) -> coro::lazy<z<C>> {
+    // w = 4 when B = 4.
+    auto xn = co_await x(n + 1);
+    auto yn = co_await y(n + 1);
+    co_return mul_4exp(xn + yn, -1);
+  };
+}
+
 }  // namespace epx
 
 #endif  // EPSILON_INC_R_HPP
