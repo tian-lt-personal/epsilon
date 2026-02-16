@@ -97,13 +97,14 @@ constexpr std::string to_string(r<C> num, unsigned int k) {
   if constexpr (B == 10) {
     auto n = static_cast<int>(log_4_10 * k) + extra_precision;
     auto xn = coro::sync_get(num(n));
-    auto sgn = xn.sgn;
+    auto sgn = xn.sgn;  // use the absolute value of xn to round towards zero.
     xn.sgn = sign::positive;
 
+    // use (xn + 0.5) / B^n as the middle point for rounding.
     auto d = (mul_2exp(xn, 1) + details::one<C>()) * details::pow10<C>(k) + mul_4exp(details::one<C>(), n);
-    mul_4exp(d, -n);
-    mul_2exp(d, -1);
-    d.sgn = sgn;
+    mul_4exp(d, -n);  // divide by 4^n
+    mul_2exp(d, -1);  // divide by 2
+    d.sgn = sgn;      // restore the sign
 
     auto s = to_string(d);
     size_t len = is_positive(d) ? s.length() : s.length() - 1;

@@ -38,7 +38,7 @@ template <container C>
 constexpr z<C> pow10(unsigned exp) {
   auto res = one<C>();
   for (unsigned i = 0; i < exp; ++i) {
-    res = res * ten<C>();
+    res = mul_n(res, ten<C>());
   }
   return res;
 }
