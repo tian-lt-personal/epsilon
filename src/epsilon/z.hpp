@@ -375,14 +375,32 @@ constexpr auto div(z<C> lhs, z<C> rhs) {
     z<C> r;
   };
   auto sgn = lhs.sgn == rhs.sgn ? sign::positive : sign::negative;
+  auto [q, r] = div_n(std::move(lhs), std::move(rhs));
+  result_t res = {.q = std::move(q), .r = std::move(r)};
+
+  res.r.sgn = lhs.sgn;
+  res.q.sgn = sgn;
+  return res;
+}
+
+template <container C>
+constexpr auto floor_div(z<C> lhs, z<C> rhs) {
+  struct result_t {
+    z<C> q;
+    z<C> r;
+  };
+
+  auto sgn = lhs.sgn == rhs.sgn ? sign::positive : sign::negative;
   auto [q, r] = div_n(std::move(lhs), rhs);
   result_t res = {.q = std::move(q), .r = std::move(r)};
 
-  if (sgn == sign::negative) {
+  if (sgn == sign::negative && !is_zero(res.r)) {
+    res.q = add_n(res.q, details::one<C>());
     res.r = sub_n(rhs, res.r);
   }
-  res.r.sgn = rhs.sgn;
+
   res.q.sgn = sgn;
+  res.r.sgn = rhs.sgn;
   return res;
 }
 
@@ -425,6 +443,12 @@ constexpr z<C>& mul_4exp(z<C>& val, int exp) {
     }
   }
   return val;
+}
+
+template <container C>
+constexpr z<C> mul_4exp(const z<C>& val, int exp) {
+  auto num = val;
+  return mul_4exp(num, exp);
 }
 
 }  // namespace epx

@@ -16,7 +16,7 @@
 namespace epx {
 
 template <container C, int B = 10>
-std::optional<z<C>> try_from_chars(std::string_view chars) {
+constexpr std::optional<z<C>> try_from_chars(std::string_view chars) {
   using D = typename z<C>::digit_type;
 
   if constexpr (B == 10) {
@@ -61,7 +61,7 @@ std::optional<z<C>> try_from_chars(std::string_view chars) {
 }
 
 template <container C, int B = 10>
-std::string to_string(z<C> num) {
+constexpr std::string to_string(z<C> num) {
   if constexpr (B == 10) {
     if (is_zero(num)) {
       return "0";
@@ -77,7 +77,7 @@ std::string to_string(z<C> num) {
       } else {
         res.push_back(static_cast<char>(r.digits[0]) + '0');
       }
-      num = std::move(q);
+      num = std::exchange(q, {});
     }
     if (sgn == sign::negative) {
       res.push_back('-');

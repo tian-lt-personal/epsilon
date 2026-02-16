@@ -20,6 +20,7 @@ add_executable(epsilon_ut
   coro_tests.cpp
   n_tests.cpp
   ops_tests.cpp
+  r_tests.cpp
   z_tests.cpp
 )
 target_link_libraries(epsilon_ut PRIVATE
