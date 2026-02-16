@@ -62,7 +62,6 @@ std::optional<z<C>> try_from_chars(std::string_view chars) {
 
 template <container C, int B = 10>
 std::string to_string(z<C> num) {
-  using D = typename z<C>::digit_type;
   if constexpr (B == 10) {
     if (is_zero(num)) {
       return "0";
