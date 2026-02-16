@@ -29,6 +29,20 @@ constexpr z<C> one() {
   return z<C>{.digits = {1}};
 }
 
+template <container C>
+constexpr z<C> ten() {
+  return z<C>{.digits = {10}};
+}
+
+template <container C>
+constexpr z<C> pow10(unsigned exp) {
+  auto res = one<C>();
+  for (unsigned i = 0; i < exp; ++i) {
+    res = res * ten<C>();
+  }
+  return res;
+}
+
 template <class MaxD, std::unsigned_integral T>
 constexpr auto umul(T lhs, T rhs) {
   struct result_t {
@@ -67,7 +81,7 @@ constexpr auto div_2d(D u0, D u1, D v) {
   return result_t{.q = static_cast<W>(u / v), .r = static_cast<D>(u % v)};
 }
 
-template <class C>
+template <container C>
 constexpr auto bit_shift(C& digits, int offset) {
   using D = typename C::value_type;
   assert((sizeof(D) * CHAR_BIT) > (size_t)std::abs(offset));
@@ -405,10 +419,9 @@ constexpr auto floor_div(z<C> lhs, z<C> rhs) {
 }
 
 template <container C>
-constexpr z<C>& mul_4exp(z<C>& val, int exp) {
+constexpr z<C>& mul_2exp(z<C>& val, int exp) {
   using D = typename z<C>::digit_type;
   constexpr int dbits = static_cast<int>(sizeof(D) * CHAR_BIT);
-  exp *= 2;
   if (is_zero(val) || exp == 0) {
     return val;
   }
@@ -443,6 +456,17 @@ constexpr z<C>& mul_4exp(z<C>& val, int exp) {
     }
   }
   return val;
+}
+
+template <container C>
+constexpr z<C>& mul_4exp(z<C>& val, int exp) {
+  return mul_2exp(val, 2 * exp);
+}
+
+template <container C>
+constexpr z<C> mul_2exp(const z<C>& val, int exp) {
+  auto num = val;
+  return mul_2exp(num, exp);
 }
 
 template <container C>

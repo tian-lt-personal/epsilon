@@ -149,7 +149,7 @@ TEST(chars_tests, try_from_chars_bad_chars) {
   }
 }
 
-TEST(chars_tests, to_decimal_string) {
+TEST(chars_tests, z_to_decimal_string) {
   {
     auto num = epx::try_from_chars<sz::container_type>("").value();
     EXPECT_TRUE(epx::is_zero(num));
@@ -207,6 +207,66 @@ TEST(chars_tests, to_decimal_string) {
     auto str = epx::to_string(num);
     EXPECT_EQ("983741723649871623948716923874619278346192873649128736419287346192873641634199781293478169238746192374",
               str);
+  }
+}
+
+TEST(chars_tests, r_to_decimal_string) {
+  {
+    auto q = epx::make_q(stosz("0"), stosz("1"));
+    EXPECT_EQ("0", epx::to_string(q, 0));
+    EXPECT_EQ("0.0", epx::to_string(q, 1));
+  }
+  {
+    auto q = epx::make_q(stosz("1"), stosz("1"));
+    EXPECT_EQ("1", epx::to_string(q, 0));
+    EXPECT_EQ("1.0", epx::to_string(q, 1));
+    EXPECT_EQ("1.00", epx::to_string(q, 2));
+    EXPECT_EQ("1.000000000000000", epx::to_string(q, 15));
+  }
+  {
+    auto q = epx::make_q(stosz("2"), stosz("1"));
+    EXPECT_EQ("2", epx::to_string(q, 0));
+    EXPECT_EQ("2.0", epx::to_string(q, 1));
+    EXPECT_EQ("2.00000", epx::to_string(q, 5));
+  }
+  {
+    auto q = epx::make_q(stosz("1"), stosz("2"));
+    auto s = epx::to_string(q, 0);
+    EXPECT_EQ("1", epx::to_string(q, 0));
+    EXPECT_EQ("0.5", epx::to_string(q, 1));
+    EXPECT_EQ("0.5000", epx::to_string(q, 4));
+  }
+  {
+    auto q = epx::make_q(stosz("1"), stosz("3"));
+    EXPECT_EQ("0", epx::to_string(q, 0));
+    EXPECT_EQ("0.3", epx::to_string(q, 1));
+    EXPECT_EQ("0.333333", epx::to_string(q, 6));
+  }
+  {
+    auto q = epx::make_q(stosz("4"), stosz("5"));
+    EXPECT_EQ("1", epx::to_string(q, 0));
+    EXPECT_EQ("0.8", epx::to_string(q, 1));
+    EXPECT_EQ("0.8000", epx::to_string(q, 4));
+  }
+  {
+    auto q = epx::make_q(stosz("-1"), stosz("1"));
+    EXPECT_EQ("-1", epx::to_string(q, 0));
+    EXPECT_EQ("-1.0", epx::to_string(q, 1));
+  }
+  {
+    auto q = epx::make_q(stosz("4"), stosz("-5"));
+    EXPECT_EQ("-1", epx::to_string(q, 0));
+    EXPECT_EQ("-0.8", epx::to_string(q, 1));
+    EXPECT_EQ("-0.8000", epx::to_string(q, 4));
+  }
+  {
+    auto q = epx::make_q(stosz("832798712356987419287340"), stosz("819725918374510348"));
+    EXPECT_EQ("1015948", epx::to_string(q, 0));
+    EXPECT_EQ("1015947.8", epx::to_string(q, 1));
+    EXPECT_EQ("1015947.76", epx::to_string(q, 2));
+    EXPECT_EQ("1015947.76", epx::to_string(q, 2));
+    EXPECT_EQ("1015947.76215982044", epx::to_string(q, 11));
+    EXPECT_EQ("1015947.7621598204356532794380011", epx::to_string(q, 25));
   }
 }
 
