@@ -18,16 +18,25 @@ TEST(chars_tests, try_from_decimal_chars) {
     auto opt_num = epx::try_from_chars<sz::container_type>("");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
+    EXPECT_TRUE(epx::is_positive(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("0");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
+    EXPECT_TRUE(epx::is_positive(*opt_num));
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("-0");
+    EXPECT_TRUE(opt_num.has_value());
+    EXPECT_TRUE(epx::is_zero(*opt_num));
+    EXPECT_TRUE(epx::is_positive(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("000000");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
+    EXPECT_TRUE(epx::is_positive(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("1");
@@ -36,8 +45,20 @@ TEST(chars_tests, try_from_decimal_chars) {
     EXPECT_EQ(expected, *opt_num);
   }
   {
+    auto opt_num = epx::try_from_chars<sz::container_type>("-1");
+    sz expected = {.digits = {1}, .sgn = epx::sign::negative};
+    EXPECT_TRUE(opt_num.has_value());
+    EXPECT_EQ(expected, *opt_num);
+  }
+  {
     auto opt_num = epx::try_from_chars<sz::container_type>("000001");
     sz expected = {.digits = {1}};
+    EXPECT_TRUE(opt_num.has_value());
+    EXPECT_EQ(expected, *opt_num);
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("-000001");
+    sz expected = {.digits = {1}, .sgn = epx::sign::negative};
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_EQ(expected, *opt_num);
   }
@@ -77,6 +98,12 @@ TEST(chars_tests, try_from_decimal_chars) {
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_EQ(expected, *opt_num);
   }
+  {
+    auto opt_num = epx::try_from_chars<mz::container_type>("-4294967296");
+    mz expected = {.digits = {0, 0, 1}, .sgn = epx::sign::negative};
+    EXPECT_TRUE(opt_num.has_value());
+    EXPECT_EQ(expected, *opt_num);
+  }
 }
 
 TEST(chars_tests, try_from_chars_bad_chars) {
@@ -93,15 +120,31 @@ TEST(chars_tests, try_from_chars_bad_chars) {
     EXPECT_FALSE(opt_num.has_value());
   }
   {
-    auto opt_num = epx::try_from_chars<sz::container_type>("+1");
-    EXPECT_FALSE(opt_num.has_value());
-  }
-  {
-    auto opt_num = epx::try_from_chars<sz::container_type>("-1");
-    EXPECT_FALSE(opt_num.has_value());
-  }
-  {
     auto opt_num = epx::try_from_chars<sz::container_type>("12.34");
+    EXPECT_FALSE(opt_num.has_value());
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("+");
+    EXPECT_FALSE(opt_num.has_value());
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("++1");
+    EXPECT_FALSE(opt_num.has_value());
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("+a");
+    EXPECT_FALSE(opt_num.has_value());
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("-");
+    EXPECT_FALSE(opt_num.has_value());
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("--2");
+    EXPECT_FALSE(opt_num.has_value());
+  }
+  {
+    auto opt_num = epx::try_from_chars<sz::container_type>("-b");
     EXPECT_FALSE(opt_num.has_value());
   }
 }
@@ -120,6 +163,12 @@ TEST(chars_tests, to_decimal_string) {
     EXPECT_EQ("0", str);
   }
   {
+    auto num = epx::try_from_chars<sz::container_type>("-0").value();
+    EXPECT_TRUE(epx::is_zero(num));
+    auto str = epx::to_string(num);
+    EXPECT_EQ("0", str);
+  }
+  {
     auto num = epx::try_from_chars<sz::container_type>("0000").value();
     EXPECT_TRUE(epx::is_zero(num));
     auto str = epx::to_string(num);
@@ -131,9 +180,24 @@ TEST(chars_tests, to_decimal_string) {
     EXPECT_EQ("1", str);
   }
   {
+    auto num = epx::try_from_chars<sz::container_type>("-1").value();
+    auto str = epx::to_string(num);
+    EXPECT_EQ("-1", str);
+  }
+  {
+    auto num = epx::try_from_chars<sz::container_type>("-0000100").value();
+    auto str = epx::to_string(num);
+    EXPECT_EQ("-100", str);
+  }
+  {
     auto num = epx::try_from_chars<sz::container_type>("12345678910").value();
     auto str = epx::to_string(num);
     EXPECT_EQ("12345678910", str);
+  }
+  {
+    auto num = epx::try_from_chars<sz::container_type>("-12345678910").value();
+    auto str = epx::to_string(num);
+    EXPECT_EQ("-12345678910", str);
   }
   {
     auto num = epx::try_from_chars<mz::container_type>(
