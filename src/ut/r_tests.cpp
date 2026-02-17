@@ -212,6 +212,12 @@ TEST(r_tests, mul) {
     auto expr = epx::mul(x, y);
     EXPECT_EQ("0.0129870129870129870129870129870129870130", epx::to_string(expr, 40));
   }
+  {
+    auto x = epx::make_q(stosz("1"), stosz("10000000000"));
+    auto y = epx::make_q(stosz("1"), stosz("2"));
+    auto expr = epx::mul(x, y);
+    EXPECT_EQ("0.00000000005000000000", epx::to_string(expr, 20));
+  }
 }
 
 }  // namespace epxut
