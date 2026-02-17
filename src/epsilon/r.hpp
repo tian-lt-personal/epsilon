@@ -5,6 +5,7 @@
 #define EPSILON_INC_R_HPP
 
 // std
+#include <algorithm>
 #include <functional>
 
 // epx
@@ -82,11 +83,18 @@ constexpr r<C> mul(r<C> x, r<C> y) {
   struct {
     r<C> x;
     r<C> y;
-    bool has_zero;
 
     coro::lazy<z<C>> operator()(unsigned int n) {
-      n;
-      throw;
+      const auto one = details::one<C>();
+      int nn = static_cast<int>(n);
+      int max_msd = nn + 3 - (nn + 2) / 2;
+      int px = n - (co_await msd(y, max_msd)) + 3;
+      int py = n - (co_await msd(x, max_msd)) + 3;
+      auto xpx = co_await x(px);
+      auto ypy = co_await y(py);
+      auto xy = mul_4exp(add_n(mul_n(xpx, ypy), one), n - px - py);
+      xy.sgn = xpx.sgn == ypy.sgn ? sign::positive : sign::negative;
+      co_return xy;
     }
   } expr{.x = std::move(x), .y = std::move(y)};
   return expr;

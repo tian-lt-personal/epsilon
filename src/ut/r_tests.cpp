@@ -123,6 +123,8 @@ TEST(r_tests, msd) {
     auto zero = epx::make_q(stosz("0"), stosz("1"));
     int msd = epx::coro::sync_get(epx::msd(zero, 10));
     EXPECT_EQ(10, msd);
+    msd = epx::coro::sync_get(epx::msd(zero, 1000));
+    EXPECT_EQ(1000, msd);
   }
   {
     auto zero = epx::make_q(stosz("1"), stosz("1"));
@@ -171,6 +173,44 @@ TEST(r_tests, mul) {
     auto x = epx::make_q(stosz("0"), stosz("1"));
     auto y = epx::make_q(stosz("0"), stosz("1"));
     auto expr = epx::mul(x, y);
+    EXPECT_EQ(
+        "0."
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        "000000000000000000000000000000000000000000000000000000000000",
+        epx::to_string(expr, 500));
+  }
+  {
+    auto x = epx::make_q(stosz("1"), stosz("1"));
+    auto y = epx::make_q(stosz("1"), stosz("1"));
+    auto expr = epx::mul(x, y);
+    EXPECT_EQ("1.00000000000000000000", epx::to_string(expr, 20));
+  }
+  {
+    auto x = epx::make_q(stosz("-2"), stosz("1"));
+    auto y = epx::make_q(stosz("1"), stosz("1"));
+    auto expr = epx::mul(x, y);
+    EXPECT_EQ("-2.0000000000000000000000000000000000000000", epx::to_string(expr, 40));
+  }
+  {
+    auto x = epx::make_q(stosz("1"), stosz("3"));
+    auto y = epx::make_q(stosz("3"), stosz("1"));
+    auto expr = epx::mul(x, y);
+    EXPECT_EQ("1.0000000000000000000000000000000000000000", epx::to_string(expr, 40));
+  }
+  {
+    auto x = epx::make_q(stosz("7"), stosz("5"));
+    auto y = epx::make_q(stosz("2"), stosz("9"));
+    auto expr = epx::mul(x, y);
+    EXPECT_EQ("0.3111111111111111111111111111111111111111", epx::to_string(expr, 40));
+  }
+  {
+    auto x = epx::make_q(stosz("11"), stosz("7"));
+    auto y = epx::make_q(stosz("1"), stosz("121"));
+    auto expr = epx::mul(x, y);
+    EXPECT_EQ("0.0129870129870129870129870129870129870130", epx::to_string(expr, 40));
   }
 }
 
