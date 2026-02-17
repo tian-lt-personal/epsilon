@@ -30,6 +30,11 @@ constexpr z<C> one() {
 }
 
 template <container C>
+constexpr z<C> base() {
+  return z<C>{.digits = {4}};
+}
+
+template <container C>
 constexpr z<C> ten() {
   return z<C>{.digits = {10}};
 }

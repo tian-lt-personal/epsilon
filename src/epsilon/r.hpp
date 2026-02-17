@@ -44,6 +44,54 @@ constexpr r<C> opp(r<C> x) {
   };
 }
 
+template <container C>
+coro::lazy<int> msd(r<C> x, int max) {
+  const auto zero = details::zero<C>();
+  const auto one = details::one<C>();
+  const auto base = details::base<C>();
+
+  auto x0 = co_await x(0);
+  if (cmp_n(x0, base) > 0) {  // 4 < x0
+    int i = -1;
+    for (;;) {
+      auto xi = co_await x(i);
+      if (cmp_n(xi, one) <= 0) {
+        co_return i + 1;
+      }
+      --i;  // TODO: use faster search algo.
+    }
+  } else if (cmp_n(x0, one) > 0) {  // 1 < x0 <= 4
+    co_return 0;
+  } else if (cmp_n(x0, zero) > 0) {  // 0 < x0 <= 1
+    co_return 1;
+  } else {  // x0 <= 0
+    int i = 0;
+    auto xi = x0;
+    for (;;) {
+      auto c = cmp_n(xi, one);
+      if (c > 0 || i >= max) {
+        co_return i;
+      }
+      xi = co_await x(++i);  // TODO: use faster search algo.
+    }
+  }
+}
+
+template <container C>
+constexpr r<C> mul(r<C> x, r<C> y) {
+  struct {
+    r<C> x;
+    r<C> y;
+    bool has_zero;
+
+    coro::lazy<z<C>> operator()(unsigned int n) {
+      n;
+      throw;
+    }
+  } expr{.x = std::move(x), .y = std::move(y)};
+  return expr;
+}
+
 }  // namespace epx
 
 #endif  // EPSILON_INC_R_HPP

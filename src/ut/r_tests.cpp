@@ -118,4 +118,60 @@ TEST(r_tests, opp) {
   }
 }
 
+TEST(r_tests, msd) {
+  {
+    auto zero = epx::make_q(stosz("0"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(10, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("1"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(1, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("11"), stosz("10"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(1, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("2"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(0, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("1"), stosz("2"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(1, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("5"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(0, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("10"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(-1, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("127"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(-2, msd);
+  }
+  {
+    auto zero = epx::make_q(stosz("128"), stosz("1"));
+    int msd = epx::coro::sync_get(epx::msd(zero, 10));
+    EXPECT_EQ(-3, msd);
+  }
+}
+
+TEST(r_tests, mul) {
+  {
+    auto x = epx::make_q(stosz("0"), stosz("1"));
+    auto y = epx::make_q(stosz("0"), stosz("1"));
+    auto expr = epx::mul(x, y);
+  }
+}
+
 }  // namespace epxut
