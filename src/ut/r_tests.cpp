@@ -114,7 +114,7 @@ TEST(r_tests, opp) {
   {
     auto x = epx::make_q(stosz("-1"), stosz("7"));
     auto expr = epx::opp(x);
-    EXPECT_EQ("-0.14285714285714285714286", epx::to_string(expr, 23));
+    EXPECT_EQ("0.14285714285714285714286", epx::to_string(expr, 23));
   }
 }
 
