@@ -103,7 +103,7 @@ typename lazy<T>::awaiter lazy<T>::operator co_await() noexcept {
 }
 
 template <class T>
-typename T lazy<T>::get() {
+T lazy<T>::get() {
   return lazy<T>::awaiter{coro_}.get();
 }
 
