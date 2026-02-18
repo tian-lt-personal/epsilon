@@ -236,7 +236,7 @@ TEST(r_tests, inv) {
   {
     auto x = epx::make_q(stosz("37"), stosz("1"));
     auto y = epx::make_q(stosz("1"), stosz("2141829365987369817236491872364918723641"));
-    auto expr = epx::inv(epx::inv(epx::inv(epx::mul(x, y))));
+    auto expr = epx::inv(epx::mul(x, y));
     EXPECT_EQ("57887280161820805871256537090943749287.59459459459459459459", epx::to_string(expr, 20));
   }
 }
