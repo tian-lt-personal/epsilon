@@ -212,6 +212,33 @@ TEST(r_tests, inv) {
     auto expr = epx::inv(zero);
     EXPECT_THROW(expr(10).get(), epx::msd_overflow_error);
   }
+  {
+    auto r = epx::make_q(stosz("1"), stosz("1"));
+    auto expr = epx::inv(r);
+    EXPECT_EQ("1.0000000000", epx::to_string(expr, 10));
+  }
+  {
+    auto r = epx::make_q(stosz("2"), stosz("1"));
+    auto expr = epx::inv(r);
+    EXPECT_EQ("0.5000000000", epx::to_string(expr, 10));
+  }
+  {
+    auto r = epx::make_q(stosz("1"), stosz("5"));
+    auto expr = epx::inv(r);
+    EXPECT_EQ("5.0000000000", epx::to_string(expr, 10));
+  }
+  {
+    auto x = epx::make_q(stosz("341872364619278364918726351937561023895"), stosz("1"));
+    auto y = epx::make_q(stosz("1"), stosz("782635487"));
+    auto expr = epx::inv(epx::mul(x, y));
+    EXPECT_EQ("0.0000000000000000000000000000022892622159", epx::to_string(expr, 40));
+  }
+  {
+    auto x = epx::make_q(stosz("37"), stosz("1"));
+    auto y = epx::make_q(stosz("1"), stosz("2141829365987369817236491872364918723641"));
+    auto expr = epx::inv(epx::inv(epx::inv(epx::mul(x, y))));
+    EXPECT_EQ("57887280161820805871256537090943749287.59459459459459459459", epx::to_string(expr, 20));
+  }
 }
 
 }  // namespace epxut
