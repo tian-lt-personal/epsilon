@@ -427,6 +427,26 @@ constexpr auto floor_div(z<C> lhs, z<C> rhs) {
 }
 
 template <container C>
+constexpr auto ceil_div(z<C> lhs, z<C> rhs) {
+  struct result_t {
+    z<C> q;
+    z<C> r;
+  };
+
+  auto sgn = lhs.sgn == rhs.sgn ? sign::positive : sign::negative;
+  auto [q, r] = div_n(std::move(lhs), rhs);
+  result_t res = {.q = std::move(q), .r = std::move(r)};
+
+  if (sgn == sign::positive && !is_zero(res.r)) {
+    res.q = add_n(res.q, details::one<C>());
+    res.r = sub_n(rhs, res.r);
+  }
+  res.q.sgn = sgn;
+  res.r.sgn = rhs.sgn == sign::positive ? sign::negative : sign::positive;
+  return res;
+}
+
+template <container C>
 constexpr z<C>& mul_2exp(z<C>& val, int exp) {
   using D = typename z<C>::digit_type;
   constexpr int dbits = static_cast<int>(sizeof(D) * CHAR_BIT);

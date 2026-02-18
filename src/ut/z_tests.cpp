@@ -247,6 +247,42 @@ TEST(z_tests, floor_div) {
   }
 }
 
+TEST(z_tests, ceil_div) {
+  {
+    sz u = {.digits = {11}}, v = {.digits = {7}};  // 11 / 7 = 2 ... -3
+    auto [q, r] = epx::ceil_div(u, v);
+    sz expected_q = {.digits = {2}};
+    sz expected_r = {.digits = {3}, .sgn = epx::sign::negative};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+  {
+    sz u = {.digits = {11}}, v = {.digits = {7}, .sgn = epx::sign::negative};  // 11/ -7 = -1 ... 4
+    auto [q, r] = epx::ceil_div(u, v);
+    sz expected_q = {.digits = {1}, .sgn = epx::sign::negative};
+    sz expected_r = {.digits = {4}};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+  {
+    sz u = {.digits = {11}, .sgn = epx::sign::negative}, v = {.digits = {7}};  //-11 / 7 = -1 ... -4
+    auto [q, r] = epx::ceil_div(u, v);
+    sz expected_q = {.digits = {1}, .sgn = epx::sign::negative};
+    sz expected_r = {.digits = {4}, .sgn = epx::sign::negative};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+  {
+    sz u = {.digits = {11}, .sgn = epx::sign::negative},
+       v = {.digits = {7}, .sgn = epx::sign::negative};  // -11/-7 = 2 ... 3
+    auto [q, r] = epx::ceil_div(u, v);
+    sz expected_q = {.digits = {2}};
+    sz expected_r = {.digits = {3}};
+    EXPECT_EQ(expected_q, q);
+    EXPECT_EQ(expected_r, r);
+  }
+}
+
 TEST(z_tests, mul_4exp) {
   {
     sz num{.digits = {1, 2, 3}};
