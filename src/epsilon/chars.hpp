@@ -96,7 +96,7 @@ constexpr std::string to_string(r<C> num, unsigned int k) {
   constexpr int extra_precision = 10;
   if constexpr (B == 10) {
     auto n = static_cast<int>(log_4_10 * k) + extra_precision;
-    auto xn = coro::sync_get(num(n));
+    auto xn = num(n).get();
     auto sgn = xn.sgn;  // use the absolute value of xn to round towards zero.
     xn.sgn = sign::positive;
 

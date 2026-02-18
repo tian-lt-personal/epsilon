@@ -18,38 +18,28 @@ TEST(r_tests, make_q) {
   {
     sz zero;
     auto q = epx::make_q(zero, one);  // 0/1
-    auto eval1 = epx::coro::sync_get(q(1));
-    EXPECT_TRUE(epx::is_zero(eval1));
-    auto eval10 = epx::coro::sync_get(q(10));
-    EXPECT_TRUE(epx::is_zero(eval10));
-    auto eval100 = epx::coro::sync_get(q(100));
-    EXPECT_TRUE(epx::is_zero(eval100));
+    EXPECT_TRUE(epx::is_zero(q(1).get()));
+    EXPECT_TRUE(epx::is_zero(q(10).get()));
+    EXPECT_TRUE(epx::is_zero(q(100).get()));
   }
   {
     auto q = epx::make_q(one, one);  // 1/1
-    auto eval1 = epx::coro::sync_get(q(1));
-    EXPECT_EQ(stosz("4"), eval1);
-    auto eval2 = epx::coro::sync_get(q(2));
-    EXPECT_EQ(stosz("16"), eval2);
-    auto eval10 = epx::coro::sync_get(q(10));
-    EXPECT_EQ(stosz("1048576"), eval10);
+    EXPECT_EQ(stosz("4"), q(1).get());
+    EXPECT_EQ(stosz("16"), q(2).get());
+    EXPECT_EQ(stosz("1048576"), q(10).get());
   }
   {
     auto num = stosz("3");
     auto q = epx::make_q(one, num);  // 1/3
-    auto eval1 = epx::coro::sync_get(q(1));
-    EXPECT_EQ(one, eval1);
-    auto eval5 = epx::coro::sync_get(q(5));
-    EXPECT_EQ(stosz("341"), eval5);
+    EXPECT_EQ(one, q(1).get());
+    EXPECT_EQ(stosz("341"), q(5).get());
   }
 
   {
     auto num = stosz("-3");
     auto q = epx::make_q(one, num);  // 1/-3
-    auto eval1 = epx::coro::sync_get(q(1));
-    EXPECT_EQ(stosz("-2"), eval1);
-    auto eval5 = epx::coro::sync_get(q(5));
-    EXPECT_EQ(stosz("-342"), eval5);
+    EXPECT_EQ(stosz("-2"), q(1).get());
+    EXPECT_EQ(stosz("-342"), q(5).get());
   }
 }
 
@@ -121,50 +111,40 @@ TEST(r_tests, opp) {
 TEST(r_tests, msd) {
   {
     auto zero = epx::make_q(stosz("0"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(10, msd);
-    msd = epx::coro::sync_get(epx::msd(zero, 1000));
-    EXPECT_EQ(1000, msd);
+    EXPECT_EQ(10, epx::msd(zero, 10).get());
+    EXPECT_EQ(1000, epx::msd(zero, 1000).get());
   }
   {
-    auto zero = epx::make_q(stosz("1"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(1, msd);
+    auto r = epx::make_q(stosz("1"), stosz("1"));
+    EXPECT_EQ(1, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("11"), stosz("10"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(1, msd);
+    auto r = epx::make_q(stosz("11"), stosz("10"));
+    EXPECT_EQ(1, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("2"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(0, msd);
+    auto r = epx::make_q(stosz("2"), stosz("1"));
+    EXPECT_EQ(0, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("1"), stosz("2"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(1, msd);
+    auto r = epx::make_q(stosz("1"), stosz("2"));
+    EXPECT_EQ(1, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("5"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(0, msd);
+    auto r = epx::make_q(stosz("5"), stosz("1"));
+    EXPECT_EQ(0, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("10"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(-1, msd);
+    auto r = epx::make_q(stosz("10"), stosz("1"));
+    EXPECT_EQ(-1, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("127"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(-2, msd);
+    auto r = epx::make_q(stosz("127"), stosz("1"));
+    EXPECT_EQ(-2, epx::msd(r, 10).get());
   }
   {
-    auto zero = epx::make_q(stosz("128"), stosz("1"));
-    int msd = epx::coro::sync_get(epx::msd(zero, 10));
-    EXPECT_EQ(-3, msd);
+    auto r = epx::make_q(stosz("128"), stosz("1"));
+    EXPECT_EQ(-3, epx::msd(r, 10).get());
   }
 }
 
@@ -223,6 +203,14 @@ TEST(r_tests, mul) {
     auto y = epx::make_q(stosz("1"), stosz("792873649187263413"));
     auto expr = epx::mul(x, y);
     EXPECT_EQ("1.04350664005214875176", epx::to_string(expr, 20));
+  }
+}
+
+TEST(r_tests, inv) {
+  {
+    auto zero = epx::make_q(stosz("0"), stosz("1"));
+    auto expr = epx::inv(zero);
+    EXPECT_THROW(expr(10).get(), epx::msd_overflow_error);
   }
 }
 

@@ -9,16 +9,16 @@
 
 namespace epx {
 
-using default_digit_t = uint32_t;
-using max_digit_t = uint32_t;
-using default_container_t = std::vector<default_digit_t>;
+using default_digit_type = uint32_t;
+using max_digit_type = uint32_t;
+using default_container_type = std::vector<default_digit_type>;
 
-struct bad_digit_t;
+struct bad_digit_type;
 template <class D>
-using wide_digit_t =
+using wide_digit_type =
     std::conditional_t<sizeof(D) == sizeof(uint8_t), uint16_t,
                        std::conditional_t<sizeof(D) == sizeof(uint16_t), uint32_t,
-                                          std::conditional_t<sizeof(D) == sizeof(uint32_t), uint64_t, bad_digit_t>>>;
+                                          std::conditional_t<sizeof(D) == sizeof(uint32_t), uint64_t, bad_digit_type>>>;
 
 template <class T>
 concept container = std::ranges::random_access_range<T> &&  //
@@ -29,12 +29,12 @@ concept container = std::ranges::random_access_range<T> &&  //
                     } && requires(T c) {
                       c.push_back(typename T::value_type{});
                       c.reserve(size_t{});
-                      sizeof(typename T::value_type) < sizeof(max_digit_t);
+                      sizeof(typename T::value_type) < sizeof(max_digit_type);
                     };
 
 enum class sign : uint8_t { positive, negative };
 
-template <container C = default_container_t>
+template <container C = default_container_type>
 struct z {
   using container_type = C;
   using digit_type = typename C::value_type;
@@ -44,12 +44,21 @@ struct z {
   sign sgn = sign::positive;
 };
 
+struct global_config_tag {};  // allow user-defined configs
+
+template <typename>
+constexpr int max_msd = 10000;  // can be overridden by global_config_tag
+
 struct divide_by_zero_error : public std::runtime_error {
   divide_by_zero_error() : std::runtime_error("epx: divide by zero") {}
 };
 
 struct overflow_error : public std::runtime_error {
   overflow_error() : std::runtime_error("epx: overflow error") {}
+};
+
+struct msd_overflow_error : public std::runtime_error {
+  msd_overflow_error() : std::runtime_error("epx: msd overflow error") {}
 };
 
 }  // namespace epx

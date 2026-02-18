@@ -7,6 +7,7 @@
 // std
 #include <algorithm>
 #include <functional>
+#include <limits>
 
 // epx
 #include "coro.hpp"
@@ -73,9 +74,18 @@ coro::lazy<int> msd(r<C> x, int max) {
       if (c > 0 || i >= max) {
         co_return i;
       }
-      xi = co_await x(++i);  // TODO: use faster search algo.
+      ++i;  // TODO: use faster search algo.
+      if (i > max_msd<global_config_tag>) [[unlikely]] {
+        throw msd_overflow_error{};
+      }
+      xi = co_await x(i);
     }
   }
+}
+
+template <container C>
+coro::lazy<int> msd(r<C> x) {
+  return msd(std::move(x), std::numeric_limits<int>::max());
 }
 
 template <container C>
@@ -97,6 +107,28 @@ constexpr r<C> mul(r<C> x, r<C> y) {
       co_return xy;
     }
   } expr{.x = std::move(x), .y = std::move(y)};
+  return expr;
+}
+
+template <container C>
+constexpr r<C> inv(r<C> x) {
+  struct {
+    r<C> x;
+
+    coro::lazy<z<C>> operator()(unsigned int n) {
+      int msdx = co_await msd(x);
+      int nn = static_cast<int>(n);
+      if (nn <= -msdx) {
+        co_return z<C>{};  // zero
+      }
+
+      int k = nn + 2 * msdx + 1;
+      auto p = mul_4exp(details::one<C>(), k + nn);
+      auto q = add(co_await x(k), details::one<C>());
+      auto [quo, _] = ceil_div(p, q);
+      co_return add(quo, details::one<C>());
+    }
+  } expr{.x = std::move(x)};
   return expr;
 }
 

@@ -32,6 +32,8 @@ class lazy {
   class awaiter;
   awaiter operator co_await() noexcept;
 
+  T get();
+
  private:
   explicit lazy(std::coroutine_handle<lazy_promise<T>> coro) : coro_(coro) {}
   std::coroutine_handle<lazy_promise<T>> coro_;
@@ -46,7 +48,14 @@ class lazy_promise {
   constexpr auto initial_suspend() noexcept { return std::suspend_always{}; }
   constexpr auto final_suspend() noexcept {
     struct final_awaiter : std::suspend_always {
-      auto await_suspend(std::coroutine_handle<lazy_promise> handle) noexcept { return handle.promise().cont_; }
+      std::coroutine_handle<> await_suspend(std::coroutine_handle<lazy_promise> handle) noexcept {
+        auto cont = handle.promise().cont_;
+        if (cont) {
+          return cont;
+        } else {
+          return std::noop_coroutine();
+        }
+      }
     };
     return final_awaiter{};
   }
@@ -73,11 +82,16 @@ class lazy<T>::awaiter : public std::suspend_always {
   T await_resume() {
     return std::visit(
         tmp::overloads{
-            [](T& val) -> T&& { return std::move(val); },                                 // normal path
-            [](std::monostate) -> T&& { std::terminate(); },                              // unassigned
-            [](std::exception_ptr& ex) -> T&& { std::rethrow_exception(std::move(ex)); }  // contains exception
+            [](T& val) -> T { return std::move(val); },                                 // normal path
+            [](std::monostate) -> T { std::terminate(); },                              // unassigned
+            [](std::exception_ptr& ex) -> T { std::rethrow_exception(std::move(ex)); }  // contains exception
         },
         coro_.promise().state_);
+  }
+
+  T get() {
+    coro_();
+    return await_resume();
   }
 
  private:
@@ -88,14 +102,12 @@ typename lazy<T>::awaiter lazy<T>::operator co_await() noexcept {
   return lazy<T>::awaiter{coro_};
 }
 
-struct forget {};
-
 template <class T>
-T sync_get(lazy<T> awaitable) {
-  std::optional<T> slot;
-  [&]() -> forget { slot = co_await awaitable; }();
-  return std::move(*slot);
+typename T lazy<T>::get() {
+  return lazy<T>::awaiter{coro_}.get();
 }
+
+struct forget {};
 
 }  // namespace epx::coro
 
