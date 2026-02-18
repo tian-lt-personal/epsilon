@@ -53,12 +53,12 @@ struct divide_by_zero_error : public std::runtime_error {
   divide_by_zero_error() : std::runtime_error("epx: divide by zero") {}
 };
 
-struct overflow_error : public std::runtime_error {
-  overflow_error() : std::runtime_error("epx: overflow error") {}
-};
-
 struct msd_overflow_error : public std::runtime_error {
   msd_overflow_error() : std::runtime_error("epx: msd overflow error") {}
+};
+
+struct precision_overflow_error : public std::runtime_error {
+  precision_overflow_error() : std::runtime_error("epx: precision overflow error") {}
 };
 
 }  // namespace epx

@@ -16,11 +16,11 @@
 namespace epx {
 
 template <container C>
-using r = std::function<coro::lazy<z<C>>(unsigned int)>;  // q (n) = floor(p * 4^n / q)
+using r = std::function<coro::lazy<z<C>>(int)>;  // q (n) = floor(p * 4^n / q)
 
 template <container C>
 constexpr r<C> make_q(z<C> p, z<C> q) {
-  return [p = std::move(p), q = std::move(q)](unsigned int n) -> coro::lazy<z<C>> {
+  return [p = std::move(p), q = std::move(q)](int n) -> coro::lazy<z<C>> {
     auto rr = mul_4exp(p, n);
     auto [quo, _] = floor_div(rr, q);
     co_return quo;
@@ -29,7 +29,10 @@ constexpr r<C> make_q(z<C> p, z<C> q) {
 
 template <container C>
 constexpr r<C> add(r<C> x, r<C> y) {
-  return [x = std::move(x), y = std::move(y)](unsigned int n) -> coro::lazy<z<C>> {
+  return [x = std::move(x), y = std::move(y)](int n) -> coro::lazy<z<C>> {
+    if (n == std::numeric_limits<int>::max()) [[unlikely]] {
+      throw precision_overflow_error{};
+    }
     // w = 4 when B = 4.
     auto xn = co_await x(n + 1);
     auto yn = co_await y(n + 1);
@@ -39,7 +42,7 @@ constexpr r<C> add(r<C> x, r<C> y) {
 
 template <container C>
 constexpr r<C> opp(r<C> x) {
-  return [x = std::move(x)](unsigned int n) -> coro::lazy<z<C>> {
+  return [x = std::move(x)](int n) -> coro::lazy<z<C>> {
     auto xn = co_await x(n);
     negate(xn);
     co_return xn;
@@ -94,10 +97,12 @@ constexpr r<C> mul(r<C> x, r<C> y) {
     r<C> x;
     r<C> y;
 
-    coro::lazy<z<C>> operator()(unsigned int n) {
+    coro::lazy<z<C>> operator()(int n) {
+      if (n > std::numeric_limits<int>::max() - 3) [[unlikely]] {
+        throw precision_overflow_error{};
+      }
       const auto one = details::one<C>();
-      int nn = static_cast<int>(n);
-      int max_msd = nn + 3 - (nn + 2) / 2;
+      int max_msd = n + 3 - (n + 2) / 2;
       int px = n - (co_await msd(y, max_msd)) + 3;
       int py = n - (co_await msd(x, max_msd)) + 3;
       auto xpx = co_await x(px);
@@ -115,15 +120,19 @@ constexpr r<C> inv(r<C> x) {
   struct {
     r<C> x;
 
-    coro::lazy<z<C>> operator()(unsigned int n) {
+    coro::lazy<z<C>> operator()(int n) {
       int msdx = co_await msd(x);
-      int nn = static_cast<int>(n);
-      if (nn <= -msdx) {
+      if (n <= -msdx) {
         co_return z<C>{};  // zero
       }
 
-      int k = nn + 2 * msdx + 1;
-      auto p = mul_4exp(details::one<C>(), k + nn);
+      assert(std::numeric_limits<int>::max() > 2 * max_msd<global_config_tag> + 1);
+      if (n > std::numeric_limits<int>::max() - 2 * max_msd<global_config_tag> - 1) [[unlikely]] {
+        throw precision_overflow_error{};
+      }
+
+      int k = n + 2 * msdx + 1;
+      auto p = mul_4exp(details::one<C>(), k + n);
       auto q = add(co_await x(k), details::one<C>());
       auto [quo, _] = ceil_div(p, q);
       co_return add(quo, details::one<C>());
