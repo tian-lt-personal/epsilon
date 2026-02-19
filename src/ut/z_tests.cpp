@@ -343,19 +343,19 @@ TEST(z_tests, mul_4exp) {
 
 TEST(z_tests, pow) {
   {
-    auto zero = epx::create<sz::container_type>(0);
+    sz zero;
     sz one = {.digits = {1}};
     auto pwr = epx::pow(zero, 0);  // 0^0 = 1
     EXPECT_EQ(one, pwr);
   }
   {
-    auto zero = epx::create<sz::container_type>(0);
+    sz zero;
     auto pwr = epx::pow(zero, 1);  // 0^1 = 0
     EXPECT_EQ(zero, pwr);
   }
   {
-    auto num = epx::create<sz::container_type>(2);
-    auto expected = epx::create<sz::container_type>(64);
+    auto num = create_sz(2);
+    auto expected = create_sz(64);
     auto pwr = epx::pow(num, 6);  //  2^6 = 64
     EXPECT_EQ(expected, pwr);
   }
@@ -364,6 +364,36 @@ TEST(z_tests, pow) {
     sz minus_one{.digits = {1}, .sgn = epx::sign::negative};
     EXPECT_EQ(minus_one, epx::pow(minus_one, 9));  // (-1)^9 = -1
     EXPECT_EQ(one, epx::pow(minus_one, 10));       // (-1)^10 = 1
+  }
+}
+
+TEST(z_tests, root) {
+  {
+    sz zero;
+    EXPECT_TRUE(epx::is_zero(epx::root(zero, 1)));
+    EXPECT_TRUE(epx::is_zero(epx::root(zero, 2)));
+    EXPECT_TRUE(epx::is_zero(epx::root(zero, 7)));
+  }
+  {
+    sz one = {.digits = {1}};
+    EXPECT_EQ(one, epx::root(sz{}, 0));
+    EXPECT_EQ(one, epx::root(one, 0));
+    EXPECT_EQ(one, epx::root(create_sz(2), 0));
+    EXPECT_EQ(one, epx::root(create_sz(9), 0));
+  }
+  {
+    EXPECT_EQ(create_sz(2), epx::root(create_sz(4), 2));
+    EXPECT_EQ(create_sz(3), epx::root(create_sz(9), 2));
+    EXPECT_EQ(create_sz(19), epx::root(create_sz(361), 2));
+    EXPECT_EQ(create_sz(1000), epx::root(create_sz(1000000), 2));
+  }
+  {
+    EXPECT_EQ(create_sz(5), epx::root(create_sz(125), 3));
+    EXPECT_EQ(create_sz(37398), epx::root(create_sz(1956111062177043216), 4));
+  }
+  {
+    EXPECT_EQ(create_sz(111), epx::root(create_sz(12345), 2));
+    EXPECT_EQ(create_sz(23), epx::root(create_sz(12345), 3));
   }
 }
 

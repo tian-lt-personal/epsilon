@@ -151,7 +151,11 @@ constexpr r<C> inv(r<C> x) {
 template <container C>
 constexpr r<C> root(r<C> x, int k) {
   return r<C>{[x = std::move(x), k](int n) -> coro::lazy<z<C>> {
-    auto xn = co_await x.approx(n + k);
+    if (k < 2) [[unlikely]] {
+      throw kthroot_too_small_error{};
+    }
+
+    auto xn = co_await x.approx(n * k);
     if (is_negative(xn)) [[unlikely]] {
       throw negative_radicand_error{};
     }

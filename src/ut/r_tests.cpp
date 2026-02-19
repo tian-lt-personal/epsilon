@@ -243,9 +243,33 @@ TEST(r_tests, inv) {
 
 TEST(r_tests, root) {
   {
+    auto x = epx::make_q(stosz("2"), stosz("3"));
+    EXPECT_THROW(epx::root(x, 0).approx(2).get(), epx::kthroot_too_small_error);
+    EXPECT_THROW(epx::root(x, 1).approx(2).get(), epx::kthroot_too_small_error);
+  }
+  {
     auto zero = epx::make_q(stosz("0"), stosz("1"));
-    auto expr = epx::root(zero, 0);
-
+    auto expr = epx::root(zero, 2);
+    EXPECT_EQ("0.00000", epx::to_string(expr, 5));
+    EXPECT_EQ("0.0000000000", epx::to_string(expr, 10));
+  }
+  {
+    auto x = epx::make_q(stosz("1"), stosz("1"));
+    EXPECT_EQ("1.00000", epx::to_string(epx::root(x, 2), 5));
+    EXPECT_EQ("1.000", epx::to_string(epx::root(x, 11), 3));
+  }
+  {
+    auto x = epx::make_q(stosz("2"), stosz("1"));
+    auto expr = epx::root(x, 2);
+    EXPECT_EQ("1.41421", epx::to_string(expr, 5));
+    EXPECT_EQ("1.4142135624", epx::to_string(expr, 10));
+    EXPECT_EQ("1.4142135624", epx::to_string(expr, 10));
+    EXPECT_EQ("1.4142135623730950488016887242096980785697", epx::to_string(expr, 40));
+  }
+  {
+    auto x = epx::make_q(stosz("34012224"), stosz("1000000"));
+    auto expr = epx::root(x, 6);
+    EXPECT_EQ("1.8000000000", epx::to_string(expr, 10));
   }
 }
 

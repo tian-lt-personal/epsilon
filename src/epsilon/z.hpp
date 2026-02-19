@@ -546,18 +546,27 @@ constexpr z<C> pow(const z<C>& num, int exp) {
 
 template <container C>
 constexpr z<C> root(const z<C>& num, int k) {
-  assert(!is_negative(num));
-  if (is_zero(num) || k == 1) {
+  if (is_negative(num)) [[unlikely]] {
+    throw negative_radicand_error{};
+  }
+
+  if (k == 0) {
+    return details::one<C>();
+  } else if (k == 1 || is_zero(num)) {
     return num;
   }
 
   z<C> x0 = num;  // guess a better intial value for faster convergence.
   z<C> x1;
-  do {
-    auto t1 = (k - 1);
-    t1;
-  } while (cmp_n(x1, x0) < 0);
-  return x1;
+  for (;;) {
+    auto t1 = create<C>(k - 1) * x0;
+    auto [t2, _] = div(num, pow(x0, k - 1));
+    x1 = div_n(add_n(t1, t2), create<C>(k)).q;
+    if (cmp_n(x1, x0) >= 0) {
+      return x1;
+    }
+    x0 = x1;
+  }
 }
 
 }  // namespace epx
