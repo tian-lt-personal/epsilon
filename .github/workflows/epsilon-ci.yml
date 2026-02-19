@@ -55,6 +55,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -S "${{ github.workspace }}/src"
+        -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }}
