@@ -15,6 +15,23 @@
 
 namespace epxut {
 
+TEST(z_tests, create) {
+  {
+    auto num = epx::create<sz::container_type>(0);
+    EXPECT_TRUE(epx::is_zero(num));
+  }
+  {
+    auto num = epx::create<sz::container_type>(0x030201);
+    sz expected{.digits = {1, 2, 3}};
+    EXPECT_EQ(expected, num);
+  }
+  {
+    auto num = epx::create<mz::container_type>(-2);
+    mz expected{.digits = {2}, .sgn = epx::sign::negative};
+    EXPECT_EQ(expected, num);
+  }
+}
+
 TEST(z_tests, normalize) {
   {
     sz zero;
@@ -321,6 +338,32 @@ TEST(z_tests, mul_4exp) {
     EXPECT_TRUE(epx::is_zero(num));
     epx::mul_4exp(num, -5);
     EXPECT_TRUE(epx::is_zero(num));
+  }
+}
+
+TEST(z_tests, pow) {
+  {
+    auto zero = epx::create<sz::container_type>(0);
+    sz one = {.digits = {1}};
+    auto pwr = epx::pow(zero, 0);  // 0^0 = 1
+    EXPECT_EQ(one, pwr);
+  }
+  {
+    auto zero = epx::create<sz::container_type>(0);
+    auto pwr = epx::pow(zero, 1);  // 0^1 = 0
+    EXPECT_EQ(zero, pwr);
+  }
+  {
+    auto num = epx::create<sz::container_type>(2);
+    auto expected = epx::create<sz::container_type>(64);
+    auto pwr = epx::pow(num, 6);  //  2^6 = 64
+    EXPECT_EQ(expected, pwr);
+  }
+  {
+    sz one = {.digits = {1}};
+    sz minus_one{.digits = {1}, .sgn = epx::sign::negative};
+    EXPECT_EQ(minus_one, epx::pow(minus_one, 9));  // (-1)^9 = -1
+    EXPECT_EQ(one, epx::pow(minus_one, 10));       // (-1)^10 = 1
   }
 }
 

@@ -117,6 +117,28 @@ constexpr auto bit_shift(C& digits, int offset) {
 }
 }  // namespace details
 
+template <container C, std::integral T>
+constexpr z<C> create(T val) {
+  z<C> res;
+  if (val == 0) {
+    return res;
+  }
+  if constexpr (std::is_signed_v<T>) {
+    res.sgn = val < 0 ? sign::negative : sign::positive;
+    val = val < 0 ? -val : val;
+  }
+  using D = typename z<C>::digit_type;
+  if constexpr (sizeof(T) <= sizeof(D)) {
+    res.digits.push_back(static_cast<D>(val));
+  } else {
+    while (val > 0) {
+      res.digits.push_back(static_cast<D>(val));
+      val >>= (sizeof(D) * CHAR_BIT);
+    }
+  }
+  return res;
+}
+
 template <container C>
 constexpr bool is_zero(const z<C>& num) noexcept {
   return std::ranges::size(num.digits) == 0;
@@ -504,10 +526,38 @@ constexpr z<C> mul_4exp(const z<C>& val, int exp) {
 }
 
 template <container C>
+constexpr z<C> pow(const z<C>& num, int exp) {
+  assert(exp >= 0);
+  z<C> res = details::one<C>();
+  if (exp > 0) {
+    for (int i = 0; i < exp; ++i) {
+      res = mul_n(res, num);
+    }
+  } else if (exp == 0) {
+    return res;
+  } else [[unlikely]] {
+    throw negative_zpow_error{};
+  }
+  if (is_negative(num) && (exp % 2 == 1)) {
+    res.sgn = sign::negative;
+  }
+  return res;
+}
+
+template <container C>
 constexpr z<C> root(const z<C>& num, int k) {
   assert(!is_negative(num));
-  k;
-  throw;
+  if (is_zero(num) || k == 1) {
+    return num;
+  }
+
+  z<C> x0 = num;  // guess a better intial value for faster convergence.
+  z<C> x1;
+  do {
+    auto t1 = (k - 1);
+    t1;
+  } while (cmp_n(x1, x0) < 0);
+  return x1;
 }
 
 }  // namespace epx

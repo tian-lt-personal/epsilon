@@ -65,6 +65,10 @@ struct negative_radicand_error : public std::runtime_error {
   negative_radicand_error() : std::runtime_error("epx: negative radicand error") {}
 };
 
+struct negative_zpow_error : public std::runtime_error {
+  negative_zpow_error() : std::runtime_error("epx: negative power for z error") {}
+};
+
 }  // namespace epx
 
 #endif
