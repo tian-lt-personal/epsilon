@@ -23,6 +23,7 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 	- **R**: Computable real numbers, supporting operations with dynamic precision.
 - **Algorithmic foundation**: Based on algorithms by V. Menissier-Morain and Donald Knuth, ensuring mathematical rigor and reliability.
 - **Modern C++**: Written in modern C++ (C++23), leveraging concepts, coroutines, and advanced type traits for performance and clarity.
+- **Cross-platform**: The library can be compiled by clang, g++, and cl (MSVC).
 
 ## Features
 
