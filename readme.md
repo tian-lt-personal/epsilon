@@ -1,6 +1,6 @@
 Experimental project - work in progress
 
-> ## TODOs
+> ### TODOs
 > - (algo.7) Exponential function
 > - (algo.8) Logarithm to base $B^\prime$
 > - (algo.9) Arctangent
@@ -11,9 +11,12 @@ Experimental project - work in progress
 
 ---
 
+![](./docs/imgs/epsilon.svg)
+
 # epsilon
 
 An arbitrary precision arithmetic library for **computable real numbers**.
+
 
 ## Highlights
 
