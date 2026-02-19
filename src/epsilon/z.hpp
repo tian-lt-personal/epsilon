@@ -123,8 +123,8 @@ constexpr bool is_zero(const z<C>& num) noexcept {
 }
 
 template <container C>
-constexpr bool is_positive(const z<C>& num) noexcept {
-  return num.sgn == sign::positive;
+constexpr bool is_negative(const z<C>& num) noexcept {
+  return num.sgn == sign::negative;
 }
 
 template <container C>
@@ -141,7 +141,7 @@ constexpr z<C>& negate(z<C>& num) noexcept {
   if (is_zero(num)) {
     return num;
   }
-  num.sgn = is_positive(num) ? sign::negative : sign::positive;
+  num.sgn = is_negative(num) ? sign::positive : sign::negative;
   return num;
 }
 
@@ -501,6 +501,13 @@ template <container C>
 constexpr z<C> mul_4exp(const z<C>& val, int exp) {
   auto num = val;
   return mul_4exp(num, exp);
+}
+
+template <container C>
+constexpr z<C> root(const z<C>& num, int k) {
+  assert(!is_negative(num));
+  k;
+  throw;
 }
 
 }  // namespace epx

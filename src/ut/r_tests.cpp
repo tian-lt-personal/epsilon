@@ -241,4 +241,12 @@ TEST(r_tests, inv) {
   }
 }
 
+TEST(r_tests, root) {
+  {
+    auto zero = epx::make_q(stosz("0"), stosz("1"));
+    auto expr = epx::root(zero, 0);
+
+  }
+}
+
 }  // namespace epxut

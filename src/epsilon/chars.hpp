@@ -107,9 +107,9 @@ constexpr std::string to_string(r<C> num, unsigned int k) {
     d.sgn = sgn;      // restore the sign
 
     auto s = to_string(d);
-    size_t len = is_positive(d) ? s.length() : s.length() - 1;
+    size_t len = is_negative(d) ? s.length() - 1 : s.length();
     if (len <= k) {
-      s.insert(is_positive(d) ? 0 : 1, k - len + 1, '0');
+      s.insert(is_negative(d) ? 1 : 0, k - len + 1, '0');
     }
     if (k > 0) {
       s.insert(s.length() - k, 1, '.');

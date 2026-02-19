@@ -19,45 +19,45 @@ TEST(z_tests, normalize) {
   {
     sz zero;
     EXPECT_TRUE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
     epx::normalize(zero);
     EXPECT_TRUE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
   }
   {
     mz zero;
     EXPECT_TRUE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
 
     zero.digits = {0, 0};
     EXPECT_FALSE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
     epx::normalize(zero);
     epx::add_n(zero, zero);
     EXPECT_TRUE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
   }
   {
     lz zero;
     EXPECT_TRUE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
 
     zero.digits = {0, 0};
     zero.sgn = epx::sign::negative;
     EXPECT_FALSE(epx::is_zero(zero));
-    EXPECT_FALSE(epx::is_positive(zero));
+    EXPECT_TRUE(epx::is_negative(zero));
     epx::normalize(zero);
     EXPECT_TRUE(epx::is_zero(zero));
-    EXPECT_TRUE(epx::is_positive(zero));
+    EXPECT_FALSE(epx::is_negative(zero));
   }
   {
     sz num = {.digits = {0, 1, 2, 0, 0}, .sgn = epx::sign::negative};
     EXPECT_FALSE(epx::is_zero(num));
-    EXPECT_FALSE(epx::is_positive(num));
+    EXPECT_TRUE(epx::is_negative(num));
     epx::normalize(num);
     auto expected_digits = sz::container_type{0, 1, 2};
     EXPECT_EQ(expected_digits, num.digits);
-    EXPECT_FALSE(epx::is_positive(num));
+    EXPECT_TRUE(epx::is_negative(num));
   }
 }
 
@@ -123,7 +123,7 @@ TEST(z_tests, mul) {
     EXPECT_TRUE(epx::is_zero(epx::mul(zero, zero)));
     EXPECT_TRUE(epx::is_zero(epx::mul(zero, one)));
     EXPECT_TRUE(epx::is_zero(epx::mul(one, zero)));
-    EXPECT_TRUE(epx::is_positive(epx::mul(minus_one, zero)));
+    EXPECT_FALSE(epx::is_negative(epx::mul(minus_one, zero)));
 
     EXPECT_EQ(one, epx::mul(one, one));
     EXPECT_EQ(one, epx::mul(minus_one, minus_one));
@@ -313,7 +313,7 @@ TEST(z_tests, mul_4exp) {
     epx::mul_4exp(num, -32);  // Large negative exponent
     sz expected{};
     EXPECT_EQ(expected, num);
-    EXPECT_TRUE(epx::is_positive(num));  // Should reset sign to positive
+    EXPECT_FALSE(epx::is_negative(num));  // Should reset sign to positive
   }
   {
     sz num{};

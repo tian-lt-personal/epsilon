@@ -18,25 +18,25 @@ TEST(chars_tests, try_from_decimal_chars) {
     auto opt_num = epx::try_from_chars<sz::container_type>("");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
-    EXPECT_TRUE(epx::is_positive(*opt_num));
+    EXPECT_FALSE(epx::is_negative(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("0");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
-    EXPECT_TRUE(epx::is_positive(*opt_num));
+    EXPECT_FALSE(epx::is_negative(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("-0");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
-    EXPECT_TRUE(epx::is_positive(*opt_num));
+    EXPECT_FALSE(epx::is_negative(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("000000");
     EXPECT_TRUE(opt_num.has_value());
     EXPECT_TRUE(epx::is_zero(*opt_num));
-    EXPECT_TRUE(epx::is_positive(*opt_num));
+    EXPECT_FALSE(epx::is_negative(*opt_num));
   }
   {
     auto opt_num = epx::try_from_chars<sz::container_type>("1");

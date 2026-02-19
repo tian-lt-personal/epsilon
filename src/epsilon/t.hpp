@@ -61,6 +61,10 @@ struct precision_overflow_error : public std::runtime_error {
   precision_overflow_error() : std::runtime_error("epx: precision overflow error") {}
 };
 
+struct negative_radicand_error : public std::runtime_error {
+  negative_radicand_error() : std::runtime_error("epx: negative radicand error") {}
+};
+
 }  // namespace epx
 
 #endif
