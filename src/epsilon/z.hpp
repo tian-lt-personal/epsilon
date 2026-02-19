@@ -559,7 +559,7 @@ constexpr z<C> root(const z<C>& num, int k) {
   z<C> x0 = num;  // guess a better intial value for faster convergence.
   z<C> x1;
   for (;;) {
-    auto t1 = create<C>(k - 1) * x0;
+    auto t1 = mul_n(create<C>(k - 1), x0);
     auto [t2, _] = div(num, pow(x0, k - 1));
     x1 = div_n(add_n(t1, t2), create<C>(k)).q;
     if (cmp_n(x1, x0) >= 0) {
