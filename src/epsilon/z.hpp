@@ -115,6 +115,15 @@ constexpr auto bit_shift(C& digits, int offset) {
     return D{0};
   }
 }
+
+template <container C>
+constexpr int bit_length(const C& digits) noexcept {
+  using D = typename C::value_type;
+  size_t dcount = std::ranges::size(digits);
+  if (dcount == 0) return 0;
+  D msd = digits[dcount - 1];
+  return static_cast<int>(dcount * CHAR_BIT) - std::countl_zero(msd);
+};
 }  // namespace details
 
 template <container C, std::integral T>
@@ -318,7 +327,7 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
       q.digits.resize(m + 1);
 
       // D1. [Normalize]
-      const auto s = std::countl_zero(v.back());
+      const auto s = std::countl_zero(v[n - 1]);
       details::bit_shift(v, (int)s);
       u.push_back(details::bit_shift(u, (int)s));  // this ensures u[m+n] exists.
 
@@ -556,7 +565,9 @@ constexpr z<C> root(const z<C>& num, int k) {
     return num;
   }
 
-  z<C> x0 = num;  // guess a better intial value for faster convergence.
+  auto x0 = details::one<C>();
+  mul_2exp(x0, (details::bit_length(num.digits) + k - 1) / k);
+
   z<C> x1;
   for (;;) {
     auto t1 = mul_n(create<C>(k - 1), x0);
