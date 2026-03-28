@@ -1,7 +1,6 @@
 Experimental project - work in progress
 
 > ### TODOs
-> - (algo.7) Exponential function
 > - (algo.8) Logarithm to base $B^\prime$
 > - (algo.9) Arctangent
 > - (algo.10) Sine function
