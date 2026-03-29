@@ -122,7 +122,7 @@ constexpr int bit_length(const C& digits) noexcept {
   size_t dcount = std::ranges::size(digits);
   if (dcount == 0) return 0;
   D msd = digits[dcount - 1];
-  return static_cast<int>(dcount * CHAR_BIT) - std::countl_zero(msd);
+  return static_cast<int>(dcount * sizeof(D) * CHAR_BIT) - std::countl_zero(msd);
 };
 }  // namespace details
 
@@ -574,7 +574,7 @@ constexpr z<C> root(const z<C>& num, int k) {
     auto [t2, _] = div(num, pow(x0, k - 1));
     x1 = div_n(add_n(t1, t2), create<C>(k)).q;
     if (cmp_n(x1, x0) >= 0) {
-      return x1;
+      return x0;
     }
     x0 = x1;
   }
