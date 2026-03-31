@@ -38,5 +38,24 @@ TEST(lexer_tests, operator_tokens) {
   EXPECT_TRUE(std::holds_alternative<epx::token_rparen>(lex().value()));
   EXPECT_TRUE(lex.drained());
 }
+TEST(lexer_tests, val_decimal_tokens) {
+  constexpr auto verify_decimal = [](std::string_view expected_raw,
+                                     std::expected<epx::token, epx::token_error> result) {
+    EXPECT_TRUE(result.has_value());
+    EXPECT_TRUE(std::holds_alternative<epx::token_val_decimal>(*result));
+    EXPECT_EQ(expected_raw, std::get<epx::token_val_decimal>(*result).raw);
+  };
+  epx::lexer lex{"0 123 123.456 123. .123 +1 -2 +.123 -.321"};
+  verify_decimal("0", lex());
+  verify_decimal("123", lex());
+  verify_decimal("123.456", lex());
+  verify_decimal("123.", lex());
+  verify_decimal(".123", lex());
+  verify_decimal("+1", lex());
+  verify_decimal("-2", lex());
+  verify_decimal("+.123", lex());
+  verify_decimal("-.321", lex());
+  EXPECT_TRUE(lex.drained());
+}
 
 }  // namespace epxut
