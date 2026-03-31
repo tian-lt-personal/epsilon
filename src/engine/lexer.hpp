@@ -39,8 +39,9 @@ class lexer {
   std::size_t column_ = 1;
 
  public:
-  explicit lexer(std::string_view input) : input_(input), cursor_(input.data()) {}
-  std::expected<token, token_error> operator()();
+  constexpr explicit lexer(std::string_view input) noexcept : input_(input), cursor_(input.data()) {}
+  constexpr bool drained() noexcept { return cursor_ >= input_.data() + input_.length(); }
+  std::expected<token, token_error> operator()() noexcept;
 };
 
 }  // namespace epx

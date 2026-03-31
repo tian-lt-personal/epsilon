@@ -5,7 +5,7 @@
 
 namespace epx {
 
-std::expected<token, token_error> lexer::operator()() {
+std::expected<token, token_error> lexer::operator()() noexcept {
   const char*& cursor = cursor_;
   const char* const limit = input_.data() + input_.length();
   const char* marker = nullptr;
@@ -30,6 +30,12 @@ lex_again:
    }
 
    "+" { ++column_; return token_op_add{}; }
+   "-" { ++column_; return token_op_sub{}; }
+   "*" { ++column_; return token_op_mul{}; }
+   "/" { ++column_; return token_op_div{}; }
+   "%" { ++column_; return token_op_percent{}; }
+   "\(" { ++column_; return token_lparen{}; }
+   "\)" { ++column_; return token_rparen{}; }
 
    * { return std::unexpected{token_error{.code = token_ec::bad_input, .line = line_, .column = column_}}; }
 */
