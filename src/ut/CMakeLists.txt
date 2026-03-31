@@ -26,6 +26,7 @@ add_executable(epsilon_ut
 target_link_libraries(epsilon_ut PRIVATE
     gtest_main
     epsilon
+    epsilon_engine
 )
 
 if(MSVC)

@@ -7,6 +7,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 endif()
 
 add_subdirectory(epsilon)
+add_subdirectory(engine)
 
 include(CTest)
 if (BUILD_TESTING)
