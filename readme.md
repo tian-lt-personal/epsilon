@@ -1,19 +1,12 @@
 Experimental project - work in progress
 
-> ### TODOs
-> - Other elementary functions
-> - Math expression - lexer/tokenizer
-> - Math expression - parser 
-> - Math expression - evaluation
-
 ---
 
 ![](./docs/imgs/epsilon.svg)
 
-# epsilon
+[![Epsilon-CI](https://github.com/tian-lt-personal/epsilon/actions/workflows/epsilon-ci.yml/badge.svg)](https://github.com/tian-lt-personal/epsilon/actions/workflows/epsilon-ci.yml)
 
 An arbitrary precision arithmetic library for **computable real numbers**.
-
 
 ## Highlights
 
@@ -36,3 +29,8 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 
 - V. Menissier-Morain, "Arbitrary Precision Real Arithmetic: design and algorithms"
 - Donald Knuth, "The Art of Computer Programming"
+
+### TODOs
+- [ ] Math expression - lexer/tokenizer
+- [ ] Math expression - parser 
+- [ ] Math expression - evaluation
