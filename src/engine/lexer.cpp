@@ -2,204 +2,121 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026-present Tian Liao
 
+// std
+#include <cassert>
+#include <cctype>
+
+// epx
 #include "lexer.hpp"
 
-namespace epx {
+namespace epx::script {
 
-std::expected<token, token_error> lexer::operator()() noexcept {
-  const char*& cursor = cursor_;
-  const char* const limit = input_.data() + input_.length();
-  const char* marker = nullptr;
-
-lex_again:
-  const char* start = cursor;
-  marker = cursor;
-
-  if (cursor >= limit) {
-    return std::unexpected{token_error{.code = token_ec::eof, .line = line_, .column = column_}};
-  }
-
-
-{
-  char yych;
-  unsigned int yyaccept = 0;
-  yych = *cursor;
-  switch (yych) {
-    case '\t':
-    case '\n':
-    case '\r':
-    case ' ': goto yy3;
-    case '%': goto yy5;
-    case '(': goto yy6;
-    case ')': goto yy7;
-    case '*': goto yy8;
-    case '+': goto yy9;
-    case '-': goto yy11;
-    case '.': goto yy13;
-    case '/': goto yy14;
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy15;
-    default: goto yy1;
-  }
-yy1:
-  ++cursor;
-yy2:
-  { return std::unexpected{token_error{.code = token_ec::bad_input, .line = line_, .column = column_}}; }
-yy3:
-  yych = *++cursor;
-  switch (yych) {
-    case '\t':
-    case '\n':
-    case '\r':
-    case ' ': goto yy3;
-    default: goto yy4;
-  }
-yy4:
-  {
-     for (auto p = marker; p != cursor; ++p) {
-        if (*p == '\n') { ++line_; column_ = 1; }
-        else ++column_;
-     }
-     goto lex_again;
-   }
-yy5:
-  ++cursor;
-  { ++column_; return token_op_percent{}; }
-yy6:
-  ++cursor;
-  { ++column_; return token_lparen{}; }
-yy7:
-  ++cursor;
-  { ++column_; return token_rparen{}; }
-yy8:
-  ++cursor;
-  { ++column_; return token_op_mul{}; }
-yy9:
-  yyaccept = 0;
-  yych = *(marker = ++cursor);
-  switch (yych) {
-    case '.': goto yy17;
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy15;
-    default: goto yy10;
-  }
-yy10:
-  { ++column_; return token_op_add{}; }
-yy11:
-  yyaccept = 1;
-  yych = *(marker = ++cursor);
-  switch (yych) {
-    case '.': goto yy17;
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy15;
-    default: goto yy12;
-  }
-yy12:
-  { ++column_; return token_op_sub{}; }
-yy13:
-  yych = *++cursor;
-  switch (yych) {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy19;
-    default: goto yy2;
-  }
-yy14:
-  ++cursor;
-  { ++column_; return token_op_div{}; }
-yy15:
-  yych = *++cursor;
-  switch (yych) {
-    case '.': goto yy19;
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy15;
-    default: goto yy16;
-  }
-yy16:
-  {
-     column_ += (size_t)(cursor - start);
-     return token_val_decimal {
-       .raw = std::string_view(marker, (size_t)(cursor - start)),
-     };
-   }
-yy17:
-  yych = *++cursor;
-  switch (yych) {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy19;
-    default: goto yy18;
-  }
-yy18:
-  cursor = marker;
-  if (yyaccept == 0) {
-    goto yy10;
-  } else {
-    goto yy12;
-  }
-yy19:
-  yych = *++cursor;
-  switch (yych) {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': goto yy19;
-    default: goto yy16;
-  }
+std::expected<token, token_ec> lexer::operator()() noexcept {
+  const char* end = input_.data() + input_.length();
+  auto getch = [&]() noexcept -> std::expected<char, token_ec> {
+    while (cursor_ < end && std::isspace(static_cast<unsigned char>(*cursor_))) {
+      ++cursor_;
+    }
+    if (cursor_ == end) {
+      return std::unexpected{token_ec::eof};
+    }
+    return *cursor_;
+  };
+  return getch().transform([&](char ch) noexcept -> token {
+    auto try_lex_z = [&](const char* cursor) noexcept -> std::expected<token_integer_literal, int> {
+      assert(cursor < end);
+      if (*cursor == 'z') {
+        if (cursor + 2 < end && *(cursor + 1) == '\'') {
+          cursor += 2;
+        } else {
+          return std::unexpected{1};
+        }
+      }
+      size_t len = 0;
+      while (cursor < end && std::isdigit(static_cast<unsigned char>(*cursor))) {
+        ++len;
+      }
+      if (len == 0) {
+        return std::unexpected{2};
+      } else {
+        cursor_ = cursor;
+        return token_integer_literal{.raw = std::string_view{cursor, len}};
+      }
+    };
+    auto try_lex_r = [&]() noexcept -> std::expected<token_realnumber_literal, int> { abort(); };
+    switch (ch) {
+      case '*':
+        ++cursor_;
+        return token_op_mul{};
+      case '/':
+        ++cursor_;
+        return token_op_div{};
+      case '(':
+        ++cursor_;
+        return token_lparen{};
+      case ')':
+        ++cursor_;
+        return token_rparen{};
+      case '%':
+        ++cursor_;
+        return token_op_percent{};
+      case '+': {
+        const char* next = cursor_ + 1;
+        if (next == end) {
+          ++cursor_;
+          return token_op_plus{};
+        } else if (std::isdigit(static_cast<unsigned char>(*next)) || *next == 'r') {
+          return try_lex_r()
+              .transform_error([&](int) {
+                ++cursor_;
+                return token_op_plus{};
+              })
+              .value();
+        } else if (*next == 'z') {
+          return try_lex_z(next)
+              .transform_error([&](int) {
+                ++cursor_;
+                return token_op_plus{};
+              })
+              .value();
+        }
+        ++cursor_;
+        return token_op_plus{};
+      }
+      case '-': {
+        const char* next = cursor_ + 1;
+        if (next == end) {
+          ++cursor_;
+          return token_op_minus{};
+        } else if (std::isdigit(static_cast<unsigned char>(*next)) || *next == 'r') {
+          return try_lex_r()
+              .transform([](token_realnumber_literal literal) {
+                literal.negative = true;
+                return literal;
+              })
+              .transform_error([&](int) {
+                ++cursor_;
+                return token_op_minus{};
+              })
+              .value();
+        } else if (*next == 'z') {
+          return try_lex_z(next)
+              .transform([](token_integer_literal literal) {
+                literal.negative = true;
+                return literal;
+              })
+              .transform_error([&](int) {
+                ++cursor_;
+                return token_op_minus{};
+              })
+              .value();
+        }
+        ++cursor_;
+        return token_op_minus{};
+      }
+    }
+    abort();
+  });
 }
 
-}
-
-} // namespace epx
+}  // namespace epx::script
