@@ -41,24 +41,23 @@ TEST(lexer_tests, operator_tokens) {
   EXPECT_TRUE(lex.drained());
 }
 
-TEST(lexer_tests, val_decimal_tokens) {
-  //constexpr auto verify_decimal = [](std::string_view expected_raw,
-  //                                   std::expected<script::token, script::token_ec> result) {
-  //  EXPECT_TRUE(result.has_value());
-  //  EXPECT_TRUE(std::holds_alternative<script::token_val_decimal>(*result));
-  //  EXPECT_EQ(expected_raw, std::get<script::token_val_decimal>(*result).raw);
-  //};
-  //script::lexer lex{"0 123 123.456 123. .123 +1 -2 +.123 -.321"};
-  //verify_decimal("0", lex());
-  //verify_decimal("123", lex());
-  //verify_decimal("123.456", lex());
-  //verify_decimal("123.", lex());
-  //verify_decimal(".123", lex());
-  //verify_decimal("+1", lex());
-  //verify_decimal("-2", lex());
-  //verify_decimal("+.123", lex());
-  //verify_decimal("-.321", lex());
-  //EXPECT_TRUE(lex.drained());
+TEST(lexer_tests, integer_literal) {
+  constexpr auto verify = [](std::string_view expected_raw, bool expected_negative,
+                             std::expected<script::token, script::token_ec> result) {
+    EXPECT_TRUE(result.has_value());
+    EXPECT_TRUE(std::holds_alternative<script::token_integer_literal>(*result));
+    EXPECT_EQ(expected_negative, std::get<script::token_integer_literal>(*result).negative);
+    EXPECT_EQ(expected_raw, std::get<script::token_integer_literal>(*result).raw);
+  };
+  script::lexer lex{"z'0 z'000 z'123\nz'0123\r\rz'10000 +z'1 \n -z'100"};
+  verify("0", false, lex());
+  verify("000", false, lex());
+  verify("123", false, lex());
+  verify("0123", false, lex());
+  verify("10000", false, lex());
+  verify("1", false, lex());
+  verify("100", true, lex());
+  EXPECT_TRUE(lex.drained());
 }
 
 }  // namespace epxut

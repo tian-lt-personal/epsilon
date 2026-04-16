@@ -22,7 +22,7 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
     }
     return *cursor_;
   };
-  return getch().transform([&](char ch) noexcept -> token {
+  return getch().and_then([&](char ch) noexcept -> std::expected<token, token_ec> {
     auto try_lex_z = [&](const char* cursor) noexcept -> std::expected<token_integer_literal, int> {
       assert(cursor < end);
       if (*cursor == 'z') {
@@ -33,17 +33,18 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
         }
       }
       size_t len = 0;
-      while (cursor < end && std::isdigit(static_cast<unsigned char>(*cursor))) {
+      while (cursor + len < end && std::isdigit(static_cast<unsigned char>(*(cursor + len)))) {
         ++len;
       }
       if (len == 0) {
         return std::unexpected{2};
       } else {
-        cursor_ = cursor;
+        cursor_ = cursor + len;
         return token_integer_literal{.raw = std::string_view{cursor, len}};
       }
     };
     auto try_lex_r = [&]() noexcept -> std::expected<token_realnumber_literal, int> { abort(); };
+    auto try_lex_id = [&]() noexcept -> std::expected<token_id, token_ec> { abort(); };
     switch (ch) {
       case '*':
         ++cursor_;
@@ -67,21 +68,22 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
           return token_op_plus{};
         } else if (std::isdigit(static_cast<unsigned char>(*next)) || *next == 'r') {
           return try_lex_r()
-              .transform_error([&](int) {
+              .transform([](token_realnumber_literal literal) { return token{literal}; })
+              .or_else([&](int) -> std::expected<token, token_ec> {
                 ++cursor_;
                 return token_op_plus{};
-              })
-              .value();
+              });
         } else if (*next == 'z') {
           return try_lex_z(next)
-              .transform_error([&](int) {
+              .transform([](token_integer_literal literal) { return token{literal}; })
+              .or_else([&](int) -> std::expected<token, token_ec> {
                 ++cursor_;
                 return token_op_plus{};
-              })
-              .value();
+              });
+        } else {
+          ++cursor_;
+          return token_op_plus{};
         }
-        ++cursor_;
-        return token_op_plus{};
       }
       case '-': {
         const char* next = cursor_ + 1;
@@ -92,30 +94,49 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
           return try_lex_r()
               .transform([](token_realnumber_literal literal) {
                 literal.negative = true;
-                return literal;
+                return token{literal};
               })
-              .transform_error([&](int) {
+              .or_else([&](int) -> std::expected<token, token_ec> {
                 ++cursor_;
                 return token_op_minus{};
-              })
-              .value();
+              });
         } else if (*next == 'z') {
           return try_lex_z(next)
               .transform([](token_integer_literal literal) {
                 literal.negative = true;
-                return literal;
+                return token{literal};
               })
-              .transform_error([&](int) {
-                ++cursor_;
-                return token_op_minus{};
-              })
-              .value();
+              .or_else([&](int) {
+                return try_lex_id().transform([&](token_id id) {
+                  cursor_ += id.raw.length() + 1;
+                  return token{id};
+                });
+              });
+        } else {
+          ++cursor_;
+          return token_op_minus{};
         }
-        ++cursor_;
-        return token_op_minus{};
+      }
+      case 'z': {
+        const char* next = cursor_ + 1;
+        if (next == end) {
+          ++cursor_;
+          return token_id{.raw = {cursor_, 1uz}};
+        } else if (*next == '\'') {
+          return try_lex_z(cursor_)
+              .transform([](token_integer_literal literal) { return token{literal}; })
+              .transform_error([](int) { return token_ec::bad_input; });
+        } else {
+          return try_lex_id().transform([](token_id id) { return token{id}; });
+        }
       }
     }
-    abort();
+    if (std::isdigit(static_cast<unsigned char>(ch))) {
+      return try_lex_r()
+          .transform([](token_realnumber_literal literal) { return token{literal}; })
+          .transform_error([](int) { return token_ec::bad_input; });
+    }
+    return std::unexpected{token_ec::bad_input};
   });
 }
 
