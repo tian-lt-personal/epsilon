@@ -8,6 +8,7 @@
 #include "lexer.hpp"
 
 namespace script = epx::script;
+using lex_result = decltype(std::declval<epx::script::lexer>().operator()());
 
 namespace epxut {
 
@@ -29,7 +30,7 @@ TEST(lexer_tests, empty_input) {
   }
 }
 
-TEST(lexer_tests, operator_tokens) {
+TEST(lexer_tests, operators) {
   script::lexer lex{"+-*/%()."};
   EXPECT_TRUE(std::holds_alternative<script::token_op_plus>(lex().value()));
   EXPECT_TRUE(std::holds_alternative<script::token_op_minus>(lex().value()));
@@ -43,9 +44,9 @@ TEST(lexer_tests, operator_tokens) {
 }
 
 TEST(lexer_tests, integer_literal) {
-  constexpr auto verify = [](std::string_view expected_raw, std::expected<script::token, script::token_ec> result) {
-    EXPECT_TRUE(result.has_value());
-    EXPECT_TRUE(std::holds_alternative<script::token_integer_literal>(*result));
+  constexpr auto verify = [](std::string_view expected_raw, lex_result result) {
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(std::holds_alternative<script::token_integer_literal>(*result));
     EXPECT_EQ(expected_raw, std::get<script::token_integer_literal>(*result).raw);
   };
   script::lexer lex{"z'0 z'000 z'123\nz'0123\r\rz'10000 z'1 \n z'100"};
@@ -60,9 +61,9 @@ TEST(lexer_tests, integer_literal) {
 }
 
 TEST(lexer_tests, real_literal) {
-  constexpr auto verify = [](std::string_view expected_raw, std::expected<script::token, script::token_ec> result) {
-    EXPECT_TRUE(result.has_value());
-    EXPECT_TRUE(std::holds_alternative<script::token_real_literal>(*result));
+  constexpr auto verify = [](std::string_view expected_raw, lex_result result) {
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(std::holds_alternative<script::token_real_literal>(*result));
     EXPECT_EQ(expected_raw, std::get<script::token_real_literal>(*result).raw);
   };
   script::lexer lex{
@@ -81,6 +82,77 @@ TEST(lexer_tests, real_literal) {
   verify("123.", lex());
   verify("123.456", lex());
   EXPECT_TRUE(lex.drained());
+}
+
+TEST(lexer_tests, id) {
+  constexpr auto verify = [](std::string_view expected_raw, lex_result result) {
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(std::holds_alternative<script::token_id>(*result));
+    EXPECT_EQ(expected_raw, std::get<script::token_id>(*result).raw);
+  };
+  script::lexer lex{"a r z a123 foo\n\r\fbar baz pi gamma"};
+  verify("a", lex());
+  verify("r", lex());
+  verify("z", lex());
+  verify("a123", lex());
+  verify("foo", lex());
+  verify("bar", lex());
+  verify("baz", lex());
+  verify("pi", lex());
+  verify("gamma", lex());
+  EXPECT_TRUE(lex.drained());
+}
+
+TEST(lexer_tests, id_corners) {
+  constexpr auto verify = [](std::string_view expected_raw, lex_result result) {
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(std::holds_alternative<script::token_id>(*result));
+    EXPECT_EQ(expected_raw, std::get<script::token_id>(*result).raw);
+  };
+  {
+    script::lexer lex{"a"};
+    verify("a", lex());
+    EXPECT_TRUE(lex.drained());
+  }
+  {
+    script::lexer lex{"r"};
+    verify("r", lex());
+    EXPECT_TRUE(lex.drained());
+  }
+  {
+    script::lexer lex{"z"};
+    verify("z", lex());
+    EXPECT_TRUE(lex.drained());
+  }
+}
+
+TEST(lexer_tests, bad_inputs) {
+  constexpr auto verify = [](std::string_view bad_input) {
+    script::lexer lex{bad_input};
+    auto res = lex();
+    if (res.has_value()) return false;
+    if (script::token_ec::bad_input != res.error()) return false;
+    return true;
+  };
+  EXPECT_TRUE(verify("1a"));       // bad id
+  EXPECT_TRUE(verify("r'"));       // bad literal prefix
+  EXPECT_TRUE(verify("b'"));       // bad literal prefix
+  EXPECT_TRUE(verify("r'1a"));     // bad real number
+  EXPECT_TRUE(verify("r'1.1."));   // bad real number
+  EXPECT_TRUE(verify("r'.1.1"));   // bad real number
+  EXPECT_TRUE(verify("r'.1.1."));  // bad real number
+  EXPECT_TRUE(verify("r'."));      // bad real number
+  EXPECT_TRUE(verify("r'.."));     // bad real number
+  EXPECT_TRUE(verify("1.1."));     // bad real number
+  EXPECT_TRUE(verify(".1.1."));    // bad real number
+  EXPECT_TRUE(verify(".1.1"));     // bad real number
+  EXPECT_TRUE(verify("b'1b"));     // bad integer
+  EXPECT_TRUE(verify("b'1.1"));    // bad integer
+  EXPECT_TRUE(verify("b'.1.1"));   // bad integer
+  EXPECT_TRUE(verify("b'.1.1."));  // bad integer
+  EXPECT_TRUE(verify("b'1.1."));   // bad integer
+  EXPECT_TRUE(verify("b'."));      // bad integer
+  EXPECT_TRUE(verify("b'.."));     // bad integer
 }
 
 }  // namespace epxut
