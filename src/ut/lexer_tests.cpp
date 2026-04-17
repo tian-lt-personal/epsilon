@@ -31,7 +31,7 @@ TEST(lexer_tests, empty_input) {
 }
 
 TEST(lexer_tests, operators) {
-  script::lexer lex{"+-*/%()."};
+  script::lexer lex{"+-*/%().=,"};
   EXPECT_TRUE(std::holds_alternative<script::token_op_plus>(lex().value()));
   EXPECT_TRUE(std::holds_alternative<script::token_op_minus>(lex().value()));
   EXPECT_TRUE(std::holds_alternative<script::token_op_mul>(lex().value()));
@@ -40,6 +40,8 @@ TEST(lexer_tests, operators) {
   EXPECT_TRUE(std::holds_alternative<script::token_lparen>(lex().value()));
   EXPECT_TRUE(std::holds_alternative<script::token_rparen>(lex().value()));
   EXPECT_TRUE(std::holds_alternative<script::token_op_dot>(lex().value()));
+  EXPECT_TRUE(std::holds_alternative<script::token_op_eq>(lex().value()));
+  EXPECT_TRUE(std::holds_alternative<script::token_op_comma>(lex().value()));
   EXPECT_TRUE(lex.drained());
 }
 
@@ -136,7 +138,7 @@ TEST(lexer_tests, bad_inputs) {
   };
   EXPECT_TRUE(verify("1a"));       // bad id
   EXPECT_TRUE(verify("r'"));       // bad literal prefix
-  EXPECT_TRUE(verify("b'"));       // bad literal prefix
+  EXPECT_TRUE(verify("z'"));       // bad literal prefix
   EXPECT_TRUE(verify("r'1a"));     // bad real number
   EXPECT_TRUE(verify("r'1.1."));   // bad real number
   EXPECT_TRUE(verify("r'.1.1"));   // bad real number
@@ -146,13 +148,34 @@ TEST(lexer_tests, bad_inputs) {
   EXPECT_TRUE(verify("1.1."));     // bad real number
   EXPECT_TRUE(verify(".1.1."));    // bad real number
   EXPECT_TRUE(verify(".1.1"));     // bad real number
-  EXPECT_TRUE(verify("b'1b"));     // bad integer
-  EXPECT_TRUE(verify("b'1.1"));    // bad integer
-  EXPECT_TRUE(verify("b'.1.1"));   // bad integer
-  EXPECT_TRUE(verify("b'.1.1."));  // bad integer
-  EXPECT_TRUE(verify("b'1.1."));   // bad integer
-  EXPECT_TRUE(verify("b'."));      // bad integer
-  EXPECT_TRUE(verify("b'.."));     // bad integer
+  EXPECT_TRUE(verify("z'1b"));     // bad integer
+  EXPECT_TRUE(verify("z'1.1"));    // bad integer
+  EXPECT_TRUE(verify("z'.1.1"));   // bad integer
+  EXPECT_TRUE(verify("z'.1.1."));  // bad integer
+  EXPECT_TRUE(verify("z'1.1."));   // bad integer
+  EXPECT_TRUE(verify("z'."));      // bad integer
+  EXPECT_TRUE(verify("z'.."));     // bad integer
+}
+
+TEST(lexer_tests, compound) {
+  script::lexer lex{"z'2/1.2++r'2=z'42342 foo(2, pi, z'432)"};
+  EXPECT_EQ("2", std::get<script::token_integer_literal>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_op_div>(lex().value()));
+  EXPECT_EQ("1.2", std::get<script::token_real_literal>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_op_plus>(lex().value()));
+  EXPECT_TRUE(std::holds_alternative<script::token_op_plus>(lex().value()));
+  EXPECT_EQ("2", std::get<script::token_real_literal>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_op_eq>(lex().value()));
+  EXPECT_EQ("42342", std::get<script::token_integer_literal>(lex().value()).raw);
+  EXPECT_EQ("foo", std::get<script::token_id>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_lparen>(lex().value()));
+  EXPECT_EQ("2", std::get<script::token_real_literal>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_op_comma>(lex().value()));
+  EXPECT_EQ("pi", std::get<script::token_id>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_op_comma>(lex().value()));
+  EXPECT_EQ("432", std::get<script::token_integer_literal>(lex().value()).raw);
+  EXPECT_TRUE(std::holds_alternative<script::token_rparen>(lex().value()));
+  EXPECT_TRUE(lex.drained());
 }
 
 }  // namespace epxut

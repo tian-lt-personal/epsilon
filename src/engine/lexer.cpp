@@ -18,6 +18,11 @@ enum struct lex_r_ec {
 };
 }
 
+bool isdelim(char ch) {
+  return std::isspace(static_cast<unsigned char>(ch)) || ch == '.' || ch == '+' || ch == '-' || ch == '*' ||
+         ch == '/' || ch == '%' || ch == '(' || ch == ')' || ch == '=' || ch == ',';
+}
+
 std::expected<token, token_ec> lexer::operator()() noexcept {
   const char* end = input_.data() + input_.length();
   auto getch = [&]() noexcept -> std::expected<char, token_ec> {
@@ -47,6 +52,8 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
       }
       if (len == 0) {
         return std::unexpected{2};
+      } else if (cursor < end && (*cursor == '.' || !isdelim(*cursor))) {
+        return std::unexpected{3};
       } else {
         cursor_ = cursor;
         return token_integer_literal{.raw = {data, len}};
@@ -77,7 +84,7 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
       }
       if (len == 0) {
         return std::unexpected{lex_r_ec::others};
-      } else if (cursor < end && !std::isspace(static_cast<unsigned char>(*cursor))) {
+      } else if (cursor < end && !isdelim(*cursor)) {
         return std::unexpected{lex_r_ec::others};
       } else if (has_dot && (*cursor == '.' || len == 1)) {
         return std::unexpected{lex_r_ec::others};
@@ -96,7 +103,7 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
         ++cursor;
         ++len;
       }
-      if (cursor == end || std::isspace(static_cast<unsigned char>(*cursor))) {
+      if (cursor == end || isdelim(*cursor)) {
         cursor_ = cursor;
         return token_id{.raw = {data, len}};
       } else {
@@ -104,6 +111,12 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
       }
     };
     switch (ch) {
+      case '=':
+        ++cursor_;
+        return token_op_eq{};
+      case ',':
+        ++cursor_;
+        return token_op_comma{};
       case '+':
         ++cursor_;
         return token_op_plus{};

@@ -94,6 +94,7 @@ jobs:
         mkdir -p coverage
         gcovr --root src \
           --filter 'src/epsilon/' \
+          --filter 'src/engine/' \
           --exclude 'src/ut/' \
           --html-details coverage/index.html \
           --xml coverage/coverage.xml \
@@ -107,6 +108,7 @@ jobs:
         echo "" >> "$GITHUB_STEP_SUMMARY"
         gcovr --root src \
           --filter 'src/epsilon/' \
+          --filter 'src/engine/' \
           --exclude 'src/ut/' \
           --print-summary \
           build 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
