@@ -64,7 +64,7 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
       bool has_dot = false;
       size_t len = 0;
       auto data = cursor;
-      while (cursor < end && std::isdigit(static_cast<unsigned char>(*cursor)) || *cursor == '.') {
+      while (cursor < end && (std::isdigit(static_cast<unsigned char>(*cursor)) || *cursor == '.')) {
         if (*cursor == '.') {
           if (!has_dot) {
             has_dot = true;
