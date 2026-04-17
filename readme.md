@@ -31,6 +31,5 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 - Donald Knuth, "The Art of Computer Programming"
 
 ### TODOs
-- Math expression - lexer/tokenizer
 - Math expression - parser 
 - Math expression - evaluation
