@@ -11,16 +11,15 @@
 namespace epx::script {
 
 struct token_integer_literal {
-  bool negative = false;
   std::string_view raw;
 };
-struct token_realnumber_literal {
-  bool negative = false;
+struct token_real_literal {
   std::string_view raw;
 };
 struct token_id {
   std::string_view raw;
 };
+struct token_op_dot {};
 struct token_op_plus {};
 struct token_op_minus {};
 struct token_op_mul {};
@@ -29,8 +28,8 @@ struct token_op_percent {};
 struct token_lparen {};
 struct token_rparen {};
 
-using token = std::variant<token_integer_literal, token_realnumber_literal, token_id, token_op_plus, token_op_minus,
-                           token_op_mul, token_op_div, token_op_percent, token_lparen, token_rparen>;
+using token = std::variant<token_integer_literal, token_real_literal, token_id, token_op_dot, token_op_plus,
+                           token_op_minus, token_op_mul, token_op_div, token_op_percent, token_lparen, token_rparen>;
 
 enum struct token_ec { eof, bad_input };
 

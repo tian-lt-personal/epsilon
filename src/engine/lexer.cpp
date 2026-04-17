@@ -33,19 +33,58 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
         }
       }
       size_t len = 0;
-      while (cursor + len < end && std::isdigit(static_cast<unsigned char>(*(cursor + len)))) {
+      auto data = cursor;
+      while (cursor < end && std::isdigit(static_cast<unsigned char>(*cursor))) {
+        ++cursor;
         ++len;
       }
       if (len == 0) {
         return std::unexpected{2};
       } else {
-        cursor_ = cursor + len;
-        return token_integer_literal{.raw = std::string_view{cursor, len}};
+        cursor_ = cursor;
+        return token_integer_literal{.raw = {data, len}};
       }
     };
-    auto try_lex_r = [&]() noexcept -> std::expected<token_realnumber_literal, int> { abort(); };
+    auto try_lex_r = [&](const char* cursor) noexcept -> std::expected<token_real_literal, int> {
+      assert(cursor < end);
+      if (*cursor == 'r') {
+        if (cursor + 2 < end && *(cursor + 1) == '\'') {
+          cursor += 2;
+        } else {
+          return std::unexpected{1};
+        }
+      }
+      bool has_dot = false;
+      size_t len = 0;
+      auto data = cursor;
+      while (cursor < end && std::isdigit(static_cast<unsigned char>(*cursor)) || *cursor == '.') {
+        if (*cursor == '.') {
+          if (!has_dot) {
+            has_dot = true;
+          } else {
+            break;
+          }
+        }
+        ++cursor;
+        ++len;
+      }
+      if (len == 0) {
+        return std::unexpected{2};
+      } else if (has_dot && (*cursor == '.' || len == 1)) {
+        return std::unexpected{3};
+      } else {
+        cursor_ = cursor;
+        return token_real_literal{.raw = {data, len}};
+      }
+    };
     auto try_lex_id = [&]() noexcept -> std::expected<token_id, token_ec> { abort(); };
     switch (ch) {
+      case '+':
+        ++cursor_;
+        return token_op_plus{};
+      case '-':
+        ++cursor_;
+        return token_op_minus{};
       case '*':
         ++cursor_;
         return token_op_mul{};
@@ -61,62 +100,6 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
       case '%':
         ++cursor_;
         return token_op_percent{};
-      case '+': {
-        const char* next = cursor_ + 1;
-        if (next == end) {
-          ++cursor_;
-          return token_op_plus{};
-        } else if (std::isdigit(static_cast<unsigned char>(*next)) || *next == 'r') {
-          return try_lex_r()
-              .transform([](token_realnumber_literal literal) { return token{literal}; })
-              .or_else([&](int) -> std::expected<token, token_ec> {
-                ++cursor_;
-                return token_op_plus{};
-              });
-        } else if (*next == 'z') {
-          return try_lex_z(next)
-              .transform([](token_integer_literal literal) { return token{literal}; })
-              .or_else([&](int) -> std::expected<token, token_ec> {
-                ++cursor_;
-                return token_op_plus{};
-              });
-        } else {
-          ++cursor_;
-          return token_op_plus{};
-        }
-      }
-      case '-': {
-        const char* next = cursor_ + 1;
-        if (next == end) {
-          ++cursor_;
-          return token_op_minus{};
-        } else if (std::isdigit(static_cast<unsigned char>(*next)) || *next == 'r') {
-          return try_lex_r()
-              .transform([](token_realnumber_literal literal) {
-                literal.negative = true;
-                return token{literal};
-              })
-              .or_else([&](int) -> std::expected<token, token_ec> {
-                ++cursor_;
-                return token_op_minus{};
-              });
-        } else if (*next == 'z') {
-          return try_lex_z(next)
-              .transform([](token_integer_literal literal) {
-                literal.negative = true;
-                return token{literal};
-              })
-              .or_else([&](int) {
-                return try_lex_id().transform([&](token_id id) {
-                  cursor_ += id.raw.length() + 1;
-                  return token{id};
-                });
-              });
-        } else {
-          ++cursor_;
-          return token_op_minus{};
-        }
-      }
       case 'z': {
         const char* next = cursor_ + 1;
         if (next == end) {
@@ -130,10 +113,31 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
           return try_lex_id().transform([](token_id id) { return token{id}; });
         }
       }
+      case 'r': {
+        const char* next = cursor_ + 1;
+        if (next == end) {
+          ++cursor_;
+          return token_id{.raw = {cursor_, 1uz}};
+        } else if (*next == '\'') {
+          return try_lex_r(cursor_)
+              .transform([](token_real_literal literal) { return token{literal}; })
+              .transform_error([](int) { return token_ec::bad_input; });
+        } else {
+          return try_lex_id().transform([](token_id id) { return token{id}; });
+        }
+      }
     }
-    if (std::isdigit(static_cast<unsigned char>(ch))) {
-      return try_lex_r()
-          .transform([](token_realnumber_literal literal) { return token{literal}; })
+
+    if (std::isdigit(static_cast<unsigned char>(ch)) || ch == '.') {
+      return try_lex_r(cursor_)
+          .transform([](token_real_literal literal) { return token{literal}; })
+          .or_else([&](int err) -> std::expected<token, int> {
+            if (ch == '.') {
+              ++cursor_;
+              return token_op_dot{};
+            }
+            return std::unexpected{err};
+          })
           .transform_error([](int) { return token_ec::bad_input; });
     }
     return std::unexpected{token_ec::bad_input};
