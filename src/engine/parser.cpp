@@ -27,14 +27,26 @@ using lex_result = decltype(std::declval<epx::script::lexer>().operator()());
 struct tu {
   lexer lex;
   token curtk;
+  std::optional<token> nextk;
   details::ast_context ctx;
 
   explicit tu(lexer l) noexcept : lex(l) {}
-  std::optional<translate_ec> initialize() { return consume_token(); }
+  std::optional<translate_ec> initialize() {
+    auto res = lex();
+    if (!res.has_value()) [[unlikely]] {
+      return translate_ec::unknown;
+    }
+    curtk = *res;
+    res = lex();
+    nextk = res.has_value() ? std::optional{*res} : std::nullopt;
+    return std::nullopt;
+  }
   std::expected<mathscript, translate_ec> parse() && noexcept {
     // todo: support multiple statements
     return parse_stmt().transform([&](stmt* stmt) { return mathscript{.statements = {stmt}, .ctx_ = std::move(ctx)}; });
   }
+
+ private:
   std::expected<stmt*, translate_ec> parse_stmt() {
     return parse_expr().transform([](expr* expr) { return static_cast<stmt*>(expr); });
   }
@@ -46,13 +58,13 @@ struct tu {
                       },
                       curtk);
   }
-
   std::optional<translate_ec> consume_token() {
-    auto res = lex();
-    if (!res.has_value()) [[unlikely]] {
+    if (!nextk.has_value()) [[unlikely]] {
       return translate_ec::unknown;
     }
-    curtk = *res;
+    curtk = *nextk;
+    auto res = lex();
+    nextk = res.has_value() ? std::optional{*res} : std::nullopt;
     return std::nullopt;
   };
 };
