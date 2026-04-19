@@ -12,15 +12,26 @@
 namespace epx::script {
 
 namespace {
+
 enum struct lex_r_ec {
   others,
   double_dot,
 };
-}
 
 bool isdelim(char ch) {
   return std::isspace(static_cast<unsigned char>(ch)) || ch == '.' || ch == '+' || ch == '-' || ch == '*' ||
          ch == '/' || ch == '%' || ch == '(' || ch == ')' || ch == '=' || ch == ',';
+}
+
+}  // namespace
+
+bool lexer::drained() const noexcept {
+  auto cursor = cursor_;
+  const char* end = input_.data() + input_.length();
+  while (cursor < end && std::isspace(static_cast<unsigned char>(*cursor))) {
+    ++cursor;
+  }
+  return cursor == end;
 }
 
 std::expected<token, token_ec> lexer::operator()() noexcept {

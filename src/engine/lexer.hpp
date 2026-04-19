@@ -30,9 +30,9 @@ struct token_op_percent {};
 struct token_lparen {};
 struct token_rparen {};
 
-using token = std::variant<token_integer_literal, token_real_literal, token_id, token_op_eq, token_op_dot,
-                           token_op_comma, token_op_plus, token_op_minus, token_op_mul, token_op_div, token_op_percent,
-                           token_lparen, token_rparen>;
+using token = std::variant<std::monostate, token_integer_literal, token_real_literal, token_id, token_op_eq,
+                           token_op_dot, token_op_comma, token_op_plus, token_op_minus, token_op_mul, token_op_div,
+                           token_op_percent, token_lparen, token_rparen>;
 
 enum struct token_ec { eof, bad_input };
 
@@ -43,7 +43,7 @@ class lexer {
 
  public:
   constexpr explicit lexer(std::string_view input) noexcept : input_(input), cursor_(input.data()) {}
-  constexpr bool drained() noexcept { return cursor_ >= input_.data() + input_.length(); }
+  bool drained() const noexcept;
   std::expected<token, token_ec> operator()() noexcept;
 };
 

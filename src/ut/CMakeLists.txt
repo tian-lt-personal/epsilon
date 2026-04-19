@@ -21,6 +21,7 @@ add_executable(epsilon_ut
   lexer_tests.cpp
   n_tests.cpp
   ops_tests.cpp
+  parser_tests.cpp
   r_tests.cpp
   z_tests.cpp
 )

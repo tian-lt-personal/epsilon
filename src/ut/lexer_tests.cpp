@@ -22,12 +22,20 @@ TEST(lexer_tests, empty_input) {
   }
   {
     script::lexer lex{"        \n\r\t  "};
-    EXPECT_FALSE(lex.drained());
     auto token = lex();
     EXPECT_FALSE(token.has_value());
     EXPECT_EQ(token.error(), script::token_ec::eof);
     EXPECT_EQ(token.error(), script::token_ec::eof);  // drained state can be queried for any times.
   }
+}
+
+TEST(lexer_tests, drained) {
+  EXPECT_TRUE(script::lexer{""}.drained());
+  EXPECT_TRUE(script::lexer{" "}.drained());
+  EXPECT_TRUE(script::lexer{"\n\r\t"}.drained());
+  EXPECT_TRUE(script::lexer{"\n \r\t   "}.drained());
+  EXPECT_FALSE(script::lexer{"abc"}.drained());
+  EXPECT_FALSE(script::lexer{"   ++"}.drained());
 }
 
 TEST(lexer_tests, operators) {
