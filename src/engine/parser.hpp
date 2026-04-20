@@ -20,10 +20,10 @@ namespace epx::script {
 enum struct node_kind {
   expr,
   val,
-  add_op,
-  sub_op,
-  mul_op,
-  div_op,
+  add_expr,
+  sub_expr,
+  mul_expr,
+  div_expr,
   func_call,
 };
 
@@ -46,13 +46,29 @@ struct ast_context {
   std::unique_ptr<std::pmr::monotonic_buffer_resource> pool;
 };
 
-struct value : stmt {
-  value() : stmt(node_kind::val) {}
-  std::variant<token_integer_literal, token_real_literal> token;
-};
 struct expr : stmt {
-  expr() : stmt(node_kind::expr) {}
-  expr* content = nullptr;
+  expr() noexcept : stmt(node_kind::expr) {}
+  explicit expr(expr* inner_content) noexcept : stmt(node_kind::expr), inner(inner_content) {}
+  expr* inner = nullptr;
+
+ protected:
+  explicit expr(node_kind kind) noexcept : stmt(kind) {}
+};
+struct val_term : expr {
+  val_term(std::variant<token_integer_literal, token_real_literal> value) : expr(node_kind::val), val(value) {}
+  std::variant<token_integer_literal, token_real_literal> val;
+};
+struct func_call : expr {
+  explicit func_call(token_id funcname, std::vector<expr*> parameters) noexcept
+      : expr(node_kind::func_call), id(funcname), params(std::move(parameters)) {}
+  token_id id;
+  std::vector<expr*> params;
+};
+struct binop_expr : expr {
+  explicit binop_expr(node_kind op, expr* left_expr, expr* right_expr) noexcept
+      : expr(op), left(left_expr), right(right_expr) {}
+  expr* left = nullptr;
+  expr* right = nullptr;
 };
 
 }  // namespace details

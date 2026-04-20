@@ -24,5 +24,9 @@ concept is_valid_parser_translate = requires(T&& t) {
 namespace epxut {
 
 TEST(parser_tests, empty_input) { auto res = script::translate(""); }
+TEST(parser_tests, binary_ops) {
+  auto res = script::translate("1+2");
+  res;
+}
 
 }  // namespace epxut
