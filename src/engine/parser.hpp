@@ -10,6 +10,7 @@
 #include <memory_resource>
 #include <string_view>
 #include <variant>
+#include <vector>
 
 // epx
 #include "lexer.hpp"
