@@ -128,7 +128,7 @@ struct tu {
   template <class T, class... Us>
   T* make(Us&&... params) noexcept {
     std::pmr::polymorphic_allocator<T> alloc{ctx.pool.get()};
-    return alloc.new_object<T>(std::forward<Us>(params)...);  // let the exception terminate the program.
+    return alloc.template new_object<T>(std::forward<Us>(params)...);  // let the exception terminate the program.
   }
 };
 
