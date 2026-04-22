@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026-present Tian Liao
 
@@ -18,22 +17,13 @@
 namespace epx::script {
 
 enum struct node_kind {
-  expr,
   val,
+  paren_expr,
   add_expr,
   sub_expr,
   mul_expr,
   div_expr,
   func_call,
-};
-
-class stmt {
- public:
-  explicit stmt(node_kind kind) noexcept : kind_(kind) {}
-  node_kind kind() noexcept { return kind_; }
-
- private:
-  node_kind kind_;
 };
 
 namespace details {
@@ -46,13 +36,19 @@ struct ast_context {
   std::unique_ptr<std::pmr::monotonic_buffer_resource> pool;
 };
 
-struct expr : stmt {
-  expr() noexcept : stmt(node_kind::expr) {}
-  explicit expr(expr* inner_content) noexcept : stmt(node_kind::expr), inner(inner_content) {}
-  expr* inner = nullptr;
+struct expr {
+ public:
+  explicit expr(node_kind kind) noexcept : kind_(kind) {}
+  node_kind kind() const noexcept { return kind_; }
 
- protected:
-  explicit expr(node_kind kind) noexcept : stmt(kind) {}
+ private:
+  node_kind kind_;
+};
+
+struct paren_expr : expr {
+  paren_expr() noexcept : expr(node_kind::paren_expr) {}
+  explicit paren_expr(expr* inner_content) noexcept : expr(node_kind::paren_expr), inner(inner_content) {}
+  expr* inner = nullptr;
 };
 struct val_term : expr {
   val_term(std::variant<token_integer_literal, token_real_literal> value) : expr(node_kind::val), val(value) {}
@@ -77,10 +73,12 @@ enum struct translate_ec {
   unknown,
 };
 
+using stmt = std::variant<details::expr*>;
+
 struct mathscript {
   friend struct details::tu;
 
-  std::vector<stmt*> statements;
+  std::vector<stmt> statements;
   details::ast_context ctx_;
 };
 

@@ -1,6 +1,7 @@
 add_library(epsilon_engine
   lexer.cpp
   parser.cpp
+  utils.cpp
 )
 
 target_compile_features(epsilon_engine PUBLIC cxx_std_23)
