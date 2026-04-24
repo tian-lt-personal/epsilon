@@ -5,15 +5,15 @@
 #define EPSILON_ENGINE_INC_TMP_HPP
 
 #if defined(_MSC_VER) && !defined(__clang__)
-#define _EPX_EMPTY_BASE __declspec(empty_bases)
+#define _EPX_EMPTY_BASES __declspec(empty_bases)
 #else
-#define _EPX_EMPTY_BASE
+#define _EPX_EMPTY_BASES
 #endif
 
 namespace epx::tmp {
 
 template <class... Ts>
-struct _EPX_EMPTY_BASE overloads : Ts... {
+struct _EPX_EMPTY_BASES overloads : Ts... {
   using Ts::operator()...;
 };
 

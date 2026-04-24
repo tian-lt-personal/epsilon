@@ -7,6 +7,7 @@
 // std
 #include <expected>
 #include <map>
+#include <memory>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -37,9 +38,17 @@ class eval_context {
   const eval_context* parent_ = nullptr;
 };
 
-using stmt_result = std::variant<std::monostate, real, integer>;
+struct function {
+  std::vector<token_id> var_seq;
+  expr* body;
+  std::shared_ptr<eval_context> context;
+};
 
-class machine {};
+using eval_result = std::variant<std::monostate, real, integer, function>;
+
+class machine {
+  std::expected<std::vector<eval_result>, machine_ec> execute(const mathscript& script) noexcept;
+};
 
 }  // namespace epx::script
 
