@@ -41,12 +41,12 @@ std::expected<std::vector<eval_result>, machine_ec> machine::execute(const maths
   std::vector<eval_result> results;
   for (auto& s : script.statements) {
     (void)s;
-    // std::visit(
-    //     tmp::overloads{
-    //         //[](const expr*) { std::terminate(); },
-    //         [](auto) { std::terminate(); },
-    //     },
-    //     s);
+    std::visit(
+        tmp::overloads{
+            //[](const expr*) { std::terminate(); },
+            [](auto) { std::terminate(); },
+        },
+        s);
   }
   abort();
 }
