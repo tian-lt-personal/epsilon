@@ -77,34 +77,8 @@ class eval_session {
   std::expected<eval_result, machine_ec> eval_binop(const details::binop_expr* b) const;
   std::expected<eval_result, machine_ec> eval_funcall(const details::func_call* f) const;
 
-  static std::expected<real, machine_ec> parse_real_literal(std::string_view raw);
-
   eval_context* ctx_;
 };
-
-std::expected<real, machine_ec> eval_session::parse_real_literal(std::string_view raw) {
-  auto dot_pos = raw.find('.');
-  if (dot_pos == std::string_view::npos) {
-    auto num = epx::try_from_chars<default_container_type>(raw);
-    if (!num.has_value()) return std::unexpected{machine_ec::unknown};
-    return epx::make_q(std::move(*num), epx::details::one<default_container_type>());
-  }
-  auto int_str = raw.substr(0, dot_pos);
-  auto frac_str = raw.substr(dot_pos + 1);
-
-  auto int_part = int_str.empty() ? epx::details::zero<default_container_type>()
-                                  : epx::try_from_chars<default_container_type>(int_str);
-  auto frac_part = frac_str.empty() ? epx::details::zero<default_container_type>()
-                                    : epx::try_from_chars<default_container_type>(frac_str);
-  if (!int_part.has_value() || !frac_part.has_value()) {
-    return std::unexpected{machine_ec::unknown};
-  }
-
-  auto k = static_cast<unsigned>(frac_str.length());
-  auto ten_pow = epx::details::pow10<default_container_type>(k);
-  auto num = epx::add(epx::mul(*int_part, ten_pow), *frac_part);
-  return epx::make_q(std::move(num), std::move(ten_pow));
-}
 
 std::expected<eval_result, machine_ec> eval_session::eval(const expr* e) const {
   switch (e->kind()) {
@@ -132,7 +106,9 @@ std::expected<eval_result, machine_ec> eval_session::eval_val(const details::val
             return eval_result{integer{std::move(*num)}};
           },
           [](const token_real_literal& lit) -> std::expected<eval_result, machine_ec> {
-            return parse_real_literal(lit.raw).transform([](real r) { return eval_result{std::move(r)}; });
+            auto parsed = parse_real_literal(lit.raw);
+            if (!parsed.has_value()) return std::unexpected{machine_ec::unknown};
+            return eval_result{epx::make_q(std::move(parsed->num), std::move(parsed->den))};
           },
           [this](const token_id& id) -> std::expected<eval_result, machine_ec> {
             if (auto res = ctx_->lookup(std::string{id.raw}); res.has_value()) {

@@ -5,7 +5,9 @@
 #include <concepts>
 #include <cstdint>
 #include <ranges>
+#include <stdexcept>
 #include <type_traits>
+#include <vector>
 
 namespace epx {
 

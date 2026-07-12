@@ -108,6 +108,7 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
       assert(std::isalpha(static_cast<unsigned char>(*cursor)));
       auto data = cursor++;
       size_t len = 1;
+      // todo: allow '_' in identifiers (continuation char)
       while (cursor < end &&
              (std::isalpha(static_cast<unsigned char>(*cursor)) || std::isdigit(static_cast<unsigned char>(*cursor)))) {
         ++cursor;
@@ -187,7 +188,7 @@ std::expected<token, token_ec> lexer::operator()() noexcept {
             return std::unexpected{err};
           })
           .transform_error([](lex_r_ec) { return token_ec::bad_input; });
-    } else if (std::isalpha(static_cast<unsigned char>(ch))) {
+    } else if (std::isalpha(static_cast<unsigned char>(ch))) {  // todo: also allow '_' as identifier start
       return try_lex_id(cursor_).transform([](token_id id) { return token{id}; });
     }
     return std::unexpected{token_ec::bad_input};

@@ -31,6 +31,14 @@ std::string eval_to_string(std::string_view expr, unsigned int precision = 5) {
   return "";
 }
 
+bool eval_fails(std::string_view expr) {
+  auto script_res = script::translate(expr);
+  if (!script_res.has_value()) return true;
+  script::machine m;
+  auto exec_res = m.execute(*script_res);
+  return !exec_res.has_value();
+}
+
 }  // namespace
 
 TEST(machine_tests, integer_literals) {
@@ -121,6 +129,79 @@ TEST(machine_tests, error_undefined_function) {
   script::machine m;
   auto exec_res = m.execute(*script_res);
   EXPECT_FALSE(exec_res.has_value());
+}
+
+TEST(machine_tests, trig_functions) {
+  EXPECT_EQ(eval_to_string("tan(0)"), "0.00000");
+  EXPECT_EQ(eval_to_string("sinh(0)"), "0.00000");
+  EXPECT_EQ(eval_to_string("cosh(0)"), "1.00000");
+  EXPECT_EQ(eval_to_string("tanh(0)"), "0.00000");
+}
+
+TEST(machine_tests, inv_trig_functions) {
+  EXPECT_EQ(eval_to_string("arcsin(0)"), "0.00000");
+  EXPECT_EQ(eval_to_string("arccos(1)"), "0.00000");
+  EXPECT_EQ(eval_to_string("arcsinh(0)"), "0.00000");
+  EXPECT_EQ(eval_to_string("arccosh(1)"), "0.00000");
+  EXPECT_EQ(eval_to_string("arctanh(0)"), "0.00000");
+}
+
+TEST(machine_tests, binary_funcs) {
+  EXPECT_EQ(eval_to_string("pow(2.0, 3.0)"), "8.00000");
+  EXPECT_EQ(eval_to_string("pow(2.0, 0.0)"), "1.00000");
+  EXPECT_EQ(eval_to_string("pow(4.0, 0.5)"), "2.00000");
+}
+
+TEST(machine_tests, integer_edge_cases) {
+  EXPECT_EQ(eval_to_string("z'0+z'0"), "0");
+  EXPECT_EQ(eval_to_string("z'0*z'5"), "0");
+  EXPECT_EQ(eval_to_string("z'3-z'7"), "-4");
+  EXPECT_EQ(eval_to_string("z'0/z'5"), "0.00000");
+  EXPECT_EQ(eval_to_string("z'2/z'4"), "0.50000");
+}
+
+TEST(machine_tests, real_negative_results) {
+  EXPECT_EQ(eval_to_string("1.0-3.0"), "-2.00000");
+  EXPECT_EQ(eval_to_string("0.0-1.0"), "-1.00000");
+  EXPECT_EQ(eval_to_string("2.0-5.0"), "-3.00000");
+}
+
+TEST(machine_tests, chained_operations) {
+  EXPECT_EQ(eval_to_string("1.0+2.0+3.0"), "6.00000");
+  EXPECT_EQ(eval_to_string("1.0-2.0-3.0"), "-4.00000");
+  EXPECT_EQ(eval_to_string("2.0*3.0*4.0"), "24.00000");
+  EXPECT_EQ(eval_to_string("z'1+z'2+z'3"), "6");
+  EXPECT_EQ(eval_to_string("z'2*z'3*z'4"), "24");
+}
+
+TEST(machine_tests, nested_func_calls) {
+  EXPECT_EQ(eval_to_string("sin(cos(0))", 10), "0.8414709848");
+  EXPECT_EQ(eval_to_string("exp(ln(2.0))"), "2.00000");
+  EXPECT_EQ(eval_to_string("sqrt(sqrt(16.0))"), "2.00000");
+}
+
+TEST(machine_tests, func_with_integer_arg) {
+  EXPECT_EQ(eval_to_string("sin(z'0)"), "0.00000");
+  EXPECT_EQ(eval_to_string("sqrt(z'9)"), "3.00000");
+  EXPECT_EQ(eval_to_string("exp(z'0)"), "1.00000");
+}
+
+TEST(machine_tests, mixed_func_and_arithmetic) {
+  EXPECT_EQ(eval_to_string("2.0*sin(0)+1.0"), "1.00000");
+  EXPECT_EQ(eval_to_string("cos(0)*3.0"), "3.00000");
+  EXPECT_EQ(eval_to_string("pow(sqrt(4.0), 2.0)"), "4.00000");
+}
+
+TEST(machine_tests, binary_func_arity_errors) {
+  EXPECT_TRUE(eval_fails("pow(1.0)"));
+  EXPECT_TRUE(eval_fails("pow(1.0,2.0,3.0)"));
+  EXPECT_TRUE(eval_fails("log_base(1.0)"));
+}
+
+TEST(machine_tests, zero_arg_func_errors) {
+  EXPECT_TRUE(eval_fails("sin()"));
+  EXPECT_TRUE(eval_fails("cos()"));
+  EXPECT_TRUE(eval_fails("sqrt()"));
 }
 
 }  // namespace epxut

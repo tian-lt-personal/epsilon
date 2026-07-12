@@ -14,6 +14,7 @@
 
 // epx
 #include "lexer.hpp"
+#include "z.hpp"
 
 namespace epx::script {
 
@@ -84,6 +85,13 @@ struct mathscript {
 };
 
 std::expected<mathscript, translate_ec> translate(std::string_view input) noexcept;
+
+struct parsed_real {
+  z<default_container_type> num;
+  z<default_container_type> den;
+};
+
+std::expected<parsed_real, translate_ec> parse_real_literal(std::string_view raw) noexcept;
 
 }  // namespace epx::script
 
