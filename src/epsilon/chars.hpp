@@ -93,15 +93,15 @@ constexpr std::string to_string(z<C> num) {
 template <container C, int B = 10>
 constexpr std::string to_string(r<C> num, unsigned int k) {
   constexpr double log_4_10 = 1.66096405;
-  constexpr int extra_precision = 10;
+  constexpr int extra_precision = 20;
   if constexpr (B == 10) {
     auto n = static_cast<int>(log_4_10 * k) + extra_precision;
     auto xn = num.approx(n).get();
     auto sgn = xn.sgn;  // use the absolute value of xn to round towards zero.
     xn.sgn = sign::positive;
 
-    // use (xn + 0.5) / B^n as the middle point for rounding.
-    auto d = (mul_2exp(xn, 1) + details::one<C>()) * details::pow10<C>(k) + mul_4exp(details::one<C>(), n);
+    // Round xn / 4^n to k decimal places: floor(xn * 10^k / 4^n + 0.5).
+    auto d = mul_2exp(xn, 1) * details::pow10<C>(k) + mul_4exp(details::one<C>(), n);
     mul_4exp(d, -n);  // divide by 4^n
     mul_2exp(d, -1);  // divide by 2
     d.sgn = sgn;      // restore the sign
