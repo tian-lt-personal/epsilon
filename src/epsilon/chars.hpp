@@ -102,7 +102,12 @@ constexpr std::string to_string(r<C> num, unsigned int k) {
     xn.sgn = sign::positive;
 
     // Round xn / 4^n to k decimal places: floor(xn * 10^k / 4^n + 0.5).
-    auto d = mul_2exp(xn, 1) * details::pow10<C>(k) + mul_4exp(details::one<C>(), n);
+    // Uses the mutating mul_4exp(z<C>&, int) rather than mul_4exp(const z<C>&, int)
+    // to avoid copying a 1-element z<C>, which triggers a false-positive -Warray-bounds
+    // in GCC 13 on std::vector's __builtin_memmove.
+    auto half = details::one<C>();
+    mul_4exp(half, n);
+    auto d = mul_2exp(xn, 1) * details::pow10<C>(k) + std::move(half);
     mul_4exp(d, -n);  // divide by 4^n
     mul_2exp(d, -1);  // divide by 2
     d.sgn = sgn;      // restore the sign
