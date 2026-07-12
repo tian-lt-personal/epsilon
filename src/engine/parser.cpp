@@ -7,8 +7,11 @@
 #include <utility>
 
 // epx
-#include "parser.hpp"
+#include "chars.hpp"
 #include "tmp.hpp"
+
+// engine
+#include "parser.hpp"
 
 namespace epx::script {
 
@@ -169,6 +172,30 @@ std::expected<mathscript, translate_ec> translate(std::string_view input) noexce
     return std::unexpected{*err};
   }
   return std::move(tu).parse();
+}
+
+std::expected<parsed_real, translate_ec> parse_real_literal(std::string_view raw) noexcept {
+  auto dot_pos = raw.find('.');
+  if (dot_pos == std::string_view::npos) {
+    auto num = epx::try_from_chars<default_container_type>(raw);
+    if (!num.has_value()) return std::unexpected{translate_ec::unknown};
+    return parsed_real{.num = std::move(*num), .den = epx::details::one<default_container_type>()};
+  }
+  auto int_str = raw.substr(0, dot_pos);
+  auto frac_str = raw.substr(dot_pos + 1);
+
+  auto int_part = int_str.empty() ? epx::details::zero<default_container_type>()
+                                  : epx::try_from_chars<default_container_type>(int_str);
+  auto frac_part = frac_str.empty() ? epx::details::zero<default_container_type>()
+                                    : epx::try_from_chars<default_container_type>(frac_str);
+  if (!int_part.has_value() || !frac_part.has_value()) {
+    return std::unexpected{translate_ec::unknown};
+  }
+
+  auto k = static_cast<unsigned>(frac_str.length());
+  auto ten_pow = epx::details::pow10<default_container_type>(k);
+  auto num = epx::add(epx::mul(*int_part, ten_pow), *frac_part);
+  return parsed_real{.num = std::move(num), .den = std::move(ten_pow)};
 }
 
 }  // namespace epx::script

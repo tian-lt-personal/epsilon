@@ -31,5 +31,11 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 - Donald Knuth, "The Art of Computer Programming"
 
 ### TODOs
-- Math expression - parser 
-- Math expression - evaluation
+- Math expression - parser ✅
+- Math expression - evaluation ✅
+- Lexer: underscore support in identifiers
+- Parser: unary minus
+- Parser: multiple statements
+- Parser: assignment (`=`)
+- Evaluator: user-defined functions with closures
+- Evaluator: richer error diagnostics

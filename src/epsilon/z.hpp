@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <bit>
 #include <cassert>
+#include <climits>
 #include <concepts>
 #include <limits>
 #include <ranges>
@@ -316,7 +317,7 @@ constexpr auto div_n(z<C> lhs, z<C> rhs) {
       using D = typename z<C>::digit_type;
       using W = wide_digit_type<D>;
       constexpr W b = W{1} << (sizeof(D) * CHAR_BIT);
-      constexpr D mask = D{b - 1};
+      constexpr D mask = static_cast<D>(b - 1);
 
       auto& u = lhs.digits;
       auto& v = rhs.digits;

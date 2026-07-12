@@ -19,6 +19,7 @@ add_executable(epsilon_ut
   chars_tests.cpp
   coro_tests.cpp
   lexer_tests.cpp
+  machine_tests.cpp
   n_tests.cpp
   ops_tests.cpp
   parser_tests.cpp

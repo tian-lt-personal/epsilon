@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 // epx
+#include "chars.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "utils.hpp"
@@ -250,6 +251,45 @@ TEST(parser_tests, func_calls) {
         "                          param[0]=[val|real=5]\n",
         script::dump(*res));
   }
+}
+
+TEST(parser_tests, parse_real_literal_integer) {
+  auto res = script::parse_real_literal("42");
+  ASSERT_TRUE(res.has_value());
+  EXPECT_EQ(epx::to_string(res->num), "42");
+  EXPECT_EQ(epx::to_string(res->den), "1");
+}
+
+TEST(parser_tests, parse_real_literal_decimal) {
+  auto res = script::parse_real_literal("3.14");
+  ASSERT_TRUE(res.has_value());
+  EXPECT_EQ(epx::to_string(res->num), "314");
+  EXPECT_EQ(epx::to_string(res->den), "100");
+}
+
+TEST(parser_tests, parse_real_literal_leading_dot) {
+  auto res = script::parse_real_literal(".5");
+  ASSERT_TRUE(res.has_value());
+  EXPECT_EQ(epx::to_string(res->num), "5");
+  EXPECT_EQ(epx::to_string(res->den), "10");
+}
+
+TEST(parser_tests, parse_real_literal_trailing_dot) {
+  auto res = script::parse_real_literal("3.");
+  ASSERT_TRUE(res.has_value());
+  EXPECT_EQ(epx::to_string(res->num), "3");
+  EXPECT_EQ(epx::to_string(res->den), "1");
+}
+
+TEST(parser_tests, parse_real_literal_zero) {
+  auto res = script::parse_real_literal("0.0");
+  ASSERT_TRUE(res.has_value());
+  EXPECT_EQ(epx::to_string(res->num), "0");
+  EXPECT_EQ(epx::to_string(res->den), "10");
+}
+
+TEST(parser_tests, parse_real_literal_bad_input) {
+  EXPECT_FALSE(script::parse_real_literal("abc").has_value());
 }
 
 }  // namespace epxut

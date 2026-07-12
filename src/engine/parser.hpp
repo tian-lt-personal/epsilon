@@ -14,6 +14,7 @@
 
 // epx
 #include "lexer.hpp"
+#include "z.hpp"
 
 namespace epx::script {
 
@@ -27,6 +28,15 @@ enum struct node_kind {
   func_call,
 };
 
+struct expr {
+ public:
+  explicit expr(node_kind kind) noexcept : kind_(kind) {}
+  node_kind kind() const noexcept { return kind_; }
+
+ private:
+  node_kind kind_;
+};
+
 namespace details {
 
 namespace {
@@ -35,15 +45,6 @@ struct tu;
 
 struct ast_context {
   std::unique_ptr<std::pmr::monotonic_buffer_resource> pool;
-};
-
-struct expr {
- public:
-  explicit expr(node_kind kind) noexcept : kind_(kind) {}
-  node_kind kind() const noexcept { return kind_; }
-
- private:
-  node_kind kind_;
 };
 
 struct paren_expr : expr {
@@ -74,7 +75,7 @@ enum struct translate_ec {
   unknown,
 };
 
-using stmt = std::variant<details::expr*>;
+using stmt = std::variant<expr*>;
 
 struct mathscript {
   friend struct details::tu;
@@ -84,6 +85,13 @@ struct mathscript {
 };
 
 std::expected<mathscript, translate_ec> translate(std::string_view input) noexcept;
+
+struct parsed_real {
+  z<default_container_type> num;
+  z<default_container_type> den;
+};
+
+std::expected<parsed_real, translate_ec> parse_real_literal(std::string_view raw) noexcept;
 
 }  // namespace epx::script
 
