@@ -8,6 +8,7 @@ endif()
 
 add_subdirectory(epsilon)
 add_subdirectory(engine)
+add_subdirectory(cli)
 
 include(CTest)
 if (BUILD_TESTING)

@@ -45,6 +45,10 @@ src/
 - **`ut`** links both libraries + GTest. Namespace: `epxut`.
 - AST nodes in `engine` are allocated from `std::pmr::monotonic_buffer_resource` (arena) — do NOT `delete` them individually; they live as long as the owning `mathscript`.
 
+## Collaboration
+
+The user may edit files alongside Claude Code. When you detect code changes that you did not make, re-analyze the user's intent from the new code — do not assume the previous conversation state is still valid. Follow the direction set by the user's edits when continuing implementation.
+
 ## Conventions
 
 ### Naming
