@@ -38,6 +38,14 @@ jobs:
     - name: Build
       run: cmake --build --preset ${{ matrix.preset }}
 
+    - name: Upload CLI artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: cli-${{ matrix.preset }}
+        path: |
+          b/${{ matrix.preset }}/cli/cli
+          b/${{ matrix.preset }}/cli/Release/cli.exe
+
     - name: Test
       run: ctest --preset ${{ matrix.preset }}
 

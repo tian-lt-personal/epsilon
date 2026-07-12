@@ -25,6 +25,7 @@ namespace script = epx::script;
 
 struct config {
   unsigned int precision = 50;
+  bool strip_zeros = true;
   std::string config_path;
 };
 
@@ -94,8 +95,10 @@ config load_config(const std::string& path) {
           auto n = std::stoul(std::string{val});
           cfg.precision = static_cast<unsigned int>(n);
         } catch (...) {
-          // Malformed value — keep the default
+          // Malformed value -- keep the default
         }
+      } else if (key == "strip_zeros") {
+        cfg.strip_zeros = val == "true" || val == "1" || val == "yes";
       }
     }
   } catch (const std::ios_base::failure&) {
@@ -108,12 +111,19 @@ config load_config(const std::string& path) {
 std::optional<args> parse_args(int argc, char* argv[]) {
   std::optional<unsigned int> precision_override;
   std::optional<std::string> config_path_override;
+  std::optional<bool> strip_zeros_override;
   std::optional<std::string> positional;
+  bool end_of_options = false;
 
   for (int i = 1; i < argc; ++i) {
     std::string_view arg = argv[i];
 
-    if (arg == "-p" || arg == "--precision") {
+    if (!end_of_options && arg == "--") {
+      end_of_options = true;
+      continue;
+    }
+
+    if (!end_of_options && arg == "-p") {
       if (i + 1 >= argc) return std::nullopt;
       std::string_view val = argv[++i];
       try {
@@ -122,10 +132,37 @@ std::optional<args> parse_args(int argc, char* argv[]) {
       } catch (...) {
         return std::nullopt;
       }
-    } else if (arg == "--config-path") {
+    } else if (!end_of_options && arg.starts_with("-p") && arg.size() > 2) {
+      try {
+        auto n = std::stoul(std::string{arg.substr(2)});
+        precision_override = static_cast<unsigned int>(n);
+      } catch (...) {
+        return std::nullopt;
+      }
+    } else if (!end_of_options && arg == "--precision") {
+      if (i + 1 >= argc) return std::nullopt;
+      std::string_view val = argv[++i];
+      try {
+        auto n = std::stoul(std::string{val});
+        precision_override = static_cast<unsigned int>(n);
+      } catch (...) {
+        return std::nullopt;
+      }
+    } else if (!end_of_options && arg.starts_with("--precision=")) {
+      try {
+        auto n = std::stoul(std::string{arg.substr(12)});
+        precision_override = static_cast<unsigned int>(n);
+      } catch (...) {
+        return std::nullopt;
+      }
+    } else if (!end_of_options && arg == "--config-path") {
       if (i + 1 >= argc) return std::nullopt;
       config_path_override = std::string{argv[++i]};
-    } else if (arg.starts_with('-')) {
+    } else if (!end_of_options && arg == "--strip-zeros") {
+      strip_zeros_override = true;
+    } else if (!end_of_options && arg == "--no-strip-zeros") {
+      strip_zeros_override = false;
+    } else if (!end_of_options && arg.starts_with('-')) {
       return std::nullopt;
     } else {
       if (positional.has_value()) return std::nullopt;
@@ -137,9 +174,12 @@ std::optional<args> parse_args(int argc, char* argv[]) {
   args result;
   result.cfg = load_config(config_path_override.value_or(default_config_path()));
 
-  // CLI precision flag overrides config file
+  // CLI flag overrides config file
   if (precision_override.has_value()) {
     result.cfg.precision = *precision_override;
+  }
+  if (strip_zeros_override.has_value()) {
+    result.cfg.strip_zeros = *strip_zeros_override;
   }
 
   // Determine mode from positional argument
@@ -157,7 +197,15 @@ std::optional<args> parse_args(int argc, char* argv[]) {
   return result;
 }
 
-std::string evaluate(std::string_view expr, unsigned int precision) {
+void strip_trailing_zeros(std::string& s) {
+  auto dot = s.find('.');
+  if (dot == std::string::npos) return;
+
+  while (s.back() == '0') s.pop_back();
+  if (s.back() == '.') s.pop_back();
+}
+
+std::string evaluate(std::string_view expr, unsigned int precision, bool strip_zeros) {
   auto script_res = script::translate(expr);
   if (!script_res.has_value()) return {};
 
@@ -168,7 +216,9 @@ std::string evaluate(std::string_view expr, unsigned int precision) {
   auto& result = (*exec_res)[0];
 
   if (std::holds_alternative<script::real>(result)) {
-    return epx::to_string(std::move(std::get<script::real>(result)), precision);
+    auto s = epx::to_string(std::move(std::get<script::real>(result)), precision);
+    if (strip_zeros) strip_trailing_zeros(s);
+    return s;
   }
   if (std::holds_alternative<script::integer>(result)) {
     return epx::to_string(std::get<script::integer>(result));
@@ -176,9 +226,9 @@ std::string evaluate(std::string_view expr, unsigned int precision) {
   return {};
 }
 
-std::string evaluate_safe(std::string_view expr, unsigned int precision) {
+std::string evaluate_safe(std::string_view expr, unsigned int precision, bool strip_zeros) {
   try {
-    auto result = evaluate(expr, precision);
+    auto result = evaluate(expr, precision, strip_zeros);
     if (result.empty()) {
       std::cerr << "error: could not evaluate expression\n";
     }
@@ -192,7 +242,7 @@ std::string evaluate_safe(std::string_view expr, unsigned int precision) {
   }
 }
 
-int process_file(const std::string& path, unsigned int precision) {
+int process_file(const std::string& path, unsigned int precision, bool strip_zeros) {
   std::ifstream file(path);
   if (!file.good()) {
     std::cerr << "error: cannot open file '" << path << "'\n";
@@ -211,7 +261,7 @@ int process_file(const std::string& path, unsigned int precision) {
       if (trimmed.empty()) continue;
       if (trimmed.starts_with('#') || trimmed.starts_with("//")) continue;
 
-      auto result = evaluate_safe(line, precision);
+      auto result = evaluate_safe(line, precision, strip_zeros);
       if (!result.empty()) {
         std::cout << result << '\n';
       }
@@ -226,12 +276,12 @@ int process_file(const std::string& path, unsigned int precision) {
 }
 
 int run_repl(config& cfg) {
-  std::cout << "Epsilon " << EPSILON_VERSION << " — arbitrary-precision math\n";
+  std::cout << "Epsilon " << EPSILON_VERSION << " -- arbitrary-precision math\n";
   std::cout << "Type an expression or a command (.help for more).\n";
 
   std::string line;
   for (;;) {
-    std::cout << ">>> " << std::flush;
+    std::cout << "> " << std::flush;
     if (!std::getline(std::cin, line)) break;
 
     if (!line.empty() && line.back() == '\r') {
@@ -254,14 +304,24 @@ int run_repl(config& cfg) {
         } catch (...) {
           std::cerr << "error: invalid precision value\n";
         }
+      } else if (cmd.starts_with(".strip_zeros")) {
+        auto val = trim(std::string_view{cmd}.substr(12));
+        if (val.empty()) {
+          cfg.strip_zeros = !cfg.strip_zeros;
+        } else {
+          cfg.strip_zeros = val == "on" || val == "true" || val == "1";
+        }
+        std::cout << "strip_zeros = " << (cfg.strip_zeros ? "true" : "false") << '\n';
       } else if (cmd == ".config") {
         std::cout << "config path: " << cfg.config_path << '\n';
         std::cout << "precision:   " << cfg.precision << '\n';
+        std::cout << "strip_zeros: " << (cfg.strip_zeros ? "true" : "false") << '\n';
       } else if (cmd == ".help") {
         std::cout << "Commands:\n";
-        std::cout << "  .precision N   Set display precision (decimal places)\n";
-        std::cout << "  .config        Show current configuration\n";
-        std::cout << "  .help          Show this help\n";
+        std::cout << "  .precision N     Set display precision (decimal places)\n";
+        std::cout << "  .strip_zeros     Toggle trailing-zero stripping (on|off)\n";
+        std::cout << "  .config          Show current configuration\n";
+        std::cout << "  .help            Show this help\n";
         std::cout << "  exit, quit     Exit the REPL\n";
         std::cout << "\n";
         std::cout << "Expression syntax:\n";
@@ -270,7 +330,7 @@ int run_repl(config& cfg) {
         std::cout << "  Operators: + - * /\n";
         std::cout << "  Functions:  sin, cos, tan, exp, log, ln, sqrt,\n";
         std::cout << "              arcsin, arccos, arctan, sinh, cosh, tanh,\n";
-        std::cout << "              arcsinh, arccosh, arctanh, pow, log_base\n";
+        std::cout << "              arcsinh, arccosh, arctanh, pow\n";
         std::cout << "  Constants:  pi, e\n";
         std::cout << "  Examples:   1 + 2 * 3, sin(pi/2), sqrt(2), pow(2, 10)\n";
       } else {
@@ -286,7 +346,7 @@ int run_repl(config& cfg) {
       continue;
     }
 
-    auto result = evaluate_safe(line, cfg.precision);
+    auto result = evaluate_safe(line, cfg.precision, cfg.strip_zeros);
     if (!result.empty()) {
       std::cout << result << '\n';
     }
@@ -301,6 +361,8 @@ void print_usage(std::string_view prog_name) {
   std::cerr << "\n";
   std::cerr << "Options:\n";
   std::cerr << "  -p, --precision N   Decimal places for real numbers (default: 50)\n";
+  std::cerr << "  --strip-zeros       Strip trailing zeros from real output (default)\n";
+  std::cerr << "  --no-strip-zeros    Keep trailing zeros in real output\n";
   std::cerr << "  --config-path PATH  Path to config file (default: ~/.epsilon/config)\n";
   std::cerr << "\n";
   std::cerr << "Modes:\n";
@@ -327,13 +389,13 @@ int main(int argc, char* argv[]) {
   return std::visit(
       epx::tmp::overloads{
           [&](const mode_inline& m) {
-            auto result = evaluate_safe(m.expression, a.cfg.precision);
+            auto result = evaluate_safe(m.expression, a.cfg.precision, a.cfg.strip_zeros);
             if (result.empty()) return EXIT_FAILURE;
             std::cout << result << '\n';
             return EXIT_SUCCESS;
           },
           [&](const mode_file& m) {
-            return process_file(m.path, a.cfg.precision);
+            return process_file(m.path, a.cfg.precision, a.cfg.strip_zeros);
           },
       },
       *a.mode);
