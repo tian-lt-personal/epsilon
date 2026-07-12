@@ -37,5 +37,9 @@ else()
   target_compile_options(epsilon_ut PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
+target_compile_definitions(epsilon_ut PRIVATE
+    EPSILON_UT_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 include(GoogleTest)
 gtest_discover_tests(epsilon_ut)
