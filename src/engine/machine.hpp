@@ -47,6 +47,7 @@ struct function {
 using eval_result = std::variant<std::monostate, real, integer, function>;
 
 class machine {
+ public:
   std::expected<std::vector<eval_result>, machine_ec> execute(const mathscript& script) noexcept;
 };
 
