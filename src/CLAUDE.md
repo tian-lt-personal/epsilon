@@ -112,3 +112,7 @@ The user may edit files alongside Claude Code. When you detect code changes that
 - `max_digit_type` is `uint32_t` — 64-bit digit types (`lz` in tests) work but aren't the default.
 - Base-10 only for string conversion (other bases are marked `static_assert("not implemented")`).
 - Single-statement parsing only (`// todo: support multiple statements`).
+
+## README
+
+The project README lives at `../readme.md` (lowercase, relative to `src/`). Never replace it entirely — preserve existing sections and add new content within the existing structure. Mark completed items with ✅ in the TODOs list.

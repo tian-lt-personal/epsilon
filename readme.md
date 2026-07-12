@@ -25,6 +25,41 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 - Conversion utilities for parsing and formatting numbers.
 - Extensible design for custom digit and container types.
 
+## CLI
+
+A command-line calculator (`cli`) is included. It supports three modes:
+
+**Immediate mode** — inline expression:
+
+```bash
+cli "1 + 2 * 3"
+cli -p 10 "sin(pi/2)"
+```
+
+**File mode** — evaluate each non-empty line of a file (`#` and `//` comments are skipped):
+
+```bash
+cli script.math
+```
+
+**REPL mode** — interactive session (no arguments):
+
+```bash
+cli
+```
+
+| Option | Description |
+|--------|-------------|
+| `-p N`, `--precision N` | Decimal places for real numbers (default: 50) |
+| `--strip-zeros`, `--no-strip-zeros` | Strip / keep trailing zeros |
+| `--config-path PATH` | Path to config file (default: `~/.epsilon/config`) |
+
+REPL commands: `.precision N`, `.strip_zeros [on|off]`, `.config`, `.help`, `exit`, `quit`.
+
+Config file (`~/.epsilon/config`): `precision = 50`, `strip_zeros = true`.
+
+Supported expression syntax: real literals (`3.14`), integer literals (`z'42`), operators (`+ - * /`), functions (`sin`, `cos`, `tan`, `exp`, `log`, `ln`, `sqrt`, `arcsin`, `arccos`, `arctan`, `sinh`, `cosh`, `tanh`, `arcsinh`, `arccosh`, `arctanh`, `pow`), and constants (`pi`, `e`).
+
 ## References
 
 - V. Menissier-Morain, "Arbitrary Precision Real Arithmetic: design and algorithms"
@@ -33,6 +68,7 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 ### TODOs
 - Math expression - parser ✅
 - Math expression - evaluation ✅
+- CLI application ✅
 - Lexer: underscore support in identifiers
 - Parser: unary minus
 - Parser: multiple statements
