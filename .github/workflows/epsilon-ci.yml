@@ -38,6 +38,14 @@ jobs:
     - name: Build
       run: cmake --build --preset ${{ matrix.preset }}
 
+    - name: Upload CLI artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: cli-${{ matrix.preset }}
+        path: |
+          src/b/${{ matrix.preset }}/cli/cli
+          src/b/${{ matrix.preset }}/cli/Release/cli.exe
+
     - name: Test
       run: ctest --preset ${{ matrix.preset }}
 
@@ -89,7 +97,7 @@ jobs:
           b/ci-coverage 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: coverage-report
         path: src/coverage/
