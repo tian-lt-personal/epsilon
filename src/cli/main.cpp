@@ -360,6 +360,7 @@ void print_usage(std::string_view prog_name) {
   std::cerr << "Usage: " << prog_name << " [OPTIONS] [EXPRESSION | FILE]\n";
   std::cerr << "\n";
   std::cerr << "Options:\n";
+  std::cerr << "  -V, --version       Print version and exit\n";
   std::cerr << "  -p, --precision N   Decimal places for real numbers (default: 50)\n";
   std::cerr << "  --strip-zeros       Strip trailing zeros from real output (default)\n";
   std::cerr << "  --no-strip-zeros    Keep trailing zeros in real output\n";
@@ -374,6 +375,14 @@ void print_usage(std::string_view prog_name) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  for (int i = 1; i < argc; ++i) {
+    std::string_view arg = argv[i];
+    if (arg == "--version" || arg == "-V") {
+      std::cout << "Epsilon " << EPSILON_VERSION << '\n';
+      return EXIT_SUCCESS;
+    }
+  }
+
   auto parsed = parse_args(argc, argv);
   if (!parsed.has_value()) {
     print_usage(argv[0]);

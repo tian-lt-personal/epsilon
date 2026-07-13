@@ -101,3 +101,54 @@ jobs:
       with:
         name: coverage-report
         path: src/coverage/
+
+  release:
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Read version from VERSION file
+      shell: pwsh
+      run: |
+        $ver = (Get-Content VERSION).Trim()
+        echo "VERSION=$ver" >> $env:GITHUB_ENV
+
+    - name: Validate tag matches VERSION file
+      shell: pwsh
+      run: |
+        $tagVer = "${{ github.ref_name }}" -replace '^v', ''
+        $fileVer = "${{ env.VERSION }}"
+        if ($tagVer -ne $fileVer) {
+          Write-Error "Tag v$tagVer does not match VERSION file ($fileVer)"
+          exit 1
+        }
+
+    - name: Configure CMake
+      run: cmake --preset vs-rel
+
+    - name: Build
+      run: cmake --build --preset vs-rel --config Release
+
+    - name: Build MSIX
+      shell: pwsh
+      run: .\msix\build-and-pack.ps1 -Version "${{ env.VERSION }}"
+
+    - name: Upload MSIX artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: epsilon-${{ env.VERSION }}-win-x64
+        path: src/msix/*.msix
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: "Epsilon ${{ env.VERSION }}"
+        files: src/msix/*.msix
+        generate_release_notes: true

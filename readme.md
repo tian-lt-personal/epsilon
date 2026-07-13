@@ -50,6 +50,7 @@ cli
 
 | Option | Description |
 |--------|-------------|
+| `-V`, `--version` | Print version and exit |
 | `-p N`, `--precision N` | Decimal places for real numbers (default: 50) |
 | `--strip-zeros`, `--no-strip-zeros` | Strip / keep trailing zeros |
 | `--config-path PATH` | Path to config file (default: `~/.epsilon/config`) |
