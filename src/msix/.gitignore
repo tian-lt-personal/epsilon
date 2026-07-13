@@ -1,0 +1,7 @@
+
+# Development certificate
+devcert.pfx
+
+# Build outputs (copied in by build script)
+cli.exe
+*.msix
