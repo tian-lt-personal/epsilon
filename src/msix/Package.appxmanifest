@@ -15,7 +15,7 @@
   <Identity
     Name="OrchidApps.Calcli"
     Publisher="CN=FE85828D-C401-4834-867E-124673EDFFEF"
-    Version="0.0.1.0"
+    Version="0.0.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>

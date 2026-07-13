@@ -1,3 +1,4 @@
 .vscode/*
 src/b/*
+src/msix/Package.appxmanifest.bak
 Testing/*
