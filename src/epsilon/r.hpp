@@ -1000,22 +1000,25 @@ constexpr r<C> tan(r<C> x) {
   return mul(std::move(s), inv(std::move(c)));
 }
 
-// arcsin(x) = arctan(x / sqrt(1 - x^2)),  |x| < 1
+// arcsin(x) = 2 * arctan(x / (1 + sqrt(1 - x^2))),  |x| <= 1
+// Uses the half-angle identity to avoid division by zero at |x| = 1.
 template <container C>
 constexpr r<C> arcsin(r<C> x) {
   auto one = make_q(details::one<C>(), details::one<C>());
+  auto two = make_q(create<C>(2), details::one<C>());
   auto x2 = mul(x, x);
-  auto denom = root(add(one, opp(std::move(x2))), 2);
-  return arctan(mul(std::move(x), inv(std::move(denom))));
+  auto sqrt_term = root(add(one, opp(std::move(x2))), 2);   // sqrt(1 - x^2)
+  auto denom = add(one, std::move(sqrt_term));                // 1 + sqrt(1 - x^2)
+  return mul(two, arctan(mul(std::move(x), inv(std::move(denom)))));  // 2 * arctan(x / (1 + ...))
 }
 
-// arccos(x) = arctan(sqrt(1 - x^2) / x),  0 < x <= 1
+// arccos(x) = pi/2 - arcsin(x)
 template <container C>
 constexpr r<C> arccos(r<C> x) {
   auto one = make_q(details::one<C>(), details::one<C>());
-  auto x2 = mul(x, x);
-  auto numer = root(add(one, opp(std::move(x2))), 2);
-  return arctan(mul(std::move(numer), inv(std::move(x))));
+  auto two = make_q(create<C>(2), details::one<C>());
+  auto half_pi = mul(two, arctan(one));  // pi/2
+  return add(std::move(half_pi), opp(arcsin(std::move(x))));
 }
 
 // sinh(x) = (exp(x) - exp(-x)) / 2

@@ -1134,6 +1134,18 @@ TEST(r_tests, arcsin) {
     auto expr = epx::arcsin(neg_half);
     EXPECT_EQ("-0.5235987756", epx::to_string(expr, 10));
   }
+  // arcsin(1) = pi/2 ≈ 1.5707963268
+  {
+    auto one = epx::make_q(stosz("1"), stosz("1"));
+    auto expr = epx::arcsin(one);
+    EXPECT_EQ("1.5707963268", epx::to_string(expr, 10));
+  }
+  // arcsin(-1) = -pi/2 ≈ -1.5707963268
+  {
+    auto neg_one = epx::make_q(stosz("-1"), stosz("1"));
+    auto expr = epx::arcsin(neg_one);
+    EXPECT_EQ("-1.5707963268", epx::to_string(expr, 10));
+  }
 }
 
 TEST(r_tests, arccos) {
@@ -1156,6 +1168,12 @@ TEST(r_tests, arccos) {
     auto val = epx::mul(sqrt2, epx::inv(epx::make_q(stosz("2"), stosz("1"))));
     auto expr = epx::arccos(val);
     EXPECT_EQ("0.7853981634", epx::to_string(expr, 10));
+  }
+  // arccos(0) = pi/2 ≈ 1.5707963268
+  {
+    auto zero = epx::make_q(stosz("0"), stosz("1"));
+    auto expr = epx::arccos(zero);
+    EXPECT_EQ("1.5707963268", epx::to_string(expr, 10));
   }
   // arcsin(x) + arccos(x) = pi/2
   {
