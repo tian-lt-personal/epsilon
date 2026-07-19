@@ -287,8 +287,16 @@ constexpr z<C> exp_rational(z<C> num, int k, int p) {
     }
   }
 
-  // Extra precision for intermediate computations
-  const int extra = exp_guard + std::max(0, m_abs_int / 2) + 5;
+  // Extra precision for intermediate computations.
+  // e^|m| has about |m| * log_4(e) base-4 digits (log_4(e) < 0.72135). The
+  // fixed-point arithmetic below carries a relative error of ~4^-wp, so the
+  // absolute error in the (possibly huge) value e^|m| is ~e^|m| * 4^-wp. For
+  // the result to stay within 4^-p of exp(num/4^k), wp must exceed the base-4
+  // magnitude of e^|m|; otherwise large exponents (e.g. pow(2, 1000)) lose the
+  // low-order digits. The negative branch needs the same margin so the
+  // inversion 4^(2*wp) / e^|m| keeps p significant digits.
+  const int mag4 = static_cast<int>((static_cast<long long>(m_abs_int) * 72135) / 100000) + 1;
+  const int extra = exp_guard + mag4 + 5;
   const int wp = p + extra;
 
   // Compute exp(frac / 4^k) at precision wp
