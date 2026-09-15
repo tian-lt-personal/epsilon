@@ -21,6 +21,7 @@ An arbitrary precision arithmetic library for **computable real numbers**.
 ## Features
 
 - Efficient, on-demand computation of real numbers with adjustable precision.
+- Trigonometric argument reduction uses magnitude-dependent guard precision to preserve accuracy for large inputs.
 - Operator overloading for natural arithmetic expressions.
 - Conversion utilities for parsing and formatting numbers.
 - Extensible design for custom digit and container types.
