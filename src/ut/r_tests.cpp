@@ -1107,7 +1107,9 @@ TEST(r_tests, sin_small_dyadic_approximation_bounds) {
           auto value = epx::sin(epx::add(base, offset));
           EXPECT_TRUE(epx::is_zero(value.approx(-1).get()));
           auto actual = value.approx(n).get();
-          if (!epx::is_zero(actual)) EXPECT_EQ(direction < 0, epx::is_negative(actual));
+          if (!epx::is_zero(actual)) {
+            EXPECT_EQ(direction < 0, epx::is_negative(actual));
+          }
           EXPECT_TRUE(epx::cmp_n(actual, lower) == 0 || epx::cmp_n(actual, upper) == 0) << epx::to_string(actual);
         }
       }
